@@ -8,6 +8,20 @@
 
 namespace core
 {
+
+	class matrixException : public std::exception
+	{
+		std::string mErr;
+	public:
+		matrixException(const std::string& err)
+			: mErr(err)
+		{}
+		const char* what() const noexcept
+		{
+			return mErr.c_str();
+		}
+	};
+
 	template <class E>
 	class matrix
 	{
@@ -140,7 +154,43 @@ namespace core
 				);
 			return out;
 		}
+
+		matrix<E>& operator +=(const matrix<E>& mat)
+		{
+			if (mat.getNumRows() != this->getNumRows() ||
+				mat.getNumCols() != this->getNumCols())
+				throw matrixException("Matrices are of inaddible boundaries");
+			for (int i = 1; i <= this->getNumRows(); ++i)
+				for (int j = 1; j <= this->getNumCols(); ++j)
+					(*this)[i][j] += mat[i][j];
+			return *this;
+		}
 	};
+
+	template <class Elem>
+	matrix<Elem> operator*(const matrix<Elem>& mat1, const matrix<Elem>& mat2)
+	{
+		int m1 = mat1.getNumRows();
+		int n1 = mat1.getNumCols();
+		int m2 = mat2.getNumRows();
+		int n2 = mat2.getNumCols();
+		if (n1 != m2)
+			throw matrixException("Matrix multiplication not possible, boundary error");
+		matrix<Elem> result(m1, n2, Elem());
+		for (int i = 1; i <= m1; ++i)
+		{
+			for (int j = 1; j <= n2; ++j)
+			{
+				Elem sum = Elem(0);
+				for (int k = 1; k <= n1; ++k)
+				{
+					sum += mat1[i][k]*mat2[k][j];
+				}
+				result[i][j] = sum;
+			}
+		}
+		return result;
+	}
 
 } // namespace core
 

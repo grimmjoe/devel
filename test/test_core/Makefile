@@ -7,7 +7,7 @@ INCLUDE=-I./inc -I../ -I../../core/ -I../../core/inc/
 
 CPP_FILES := $(wildcard src/*.cpp)
 OBJ_FILES := $(addprefix obj/,$(notdir $(CPP_FILES:.cpp=.o)))
-EXE:= bin/core_test
+EXE:= bin/matrix_inverse
 
 default: $(EXE)
 
