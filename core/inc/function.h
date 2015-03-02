@@ -14,6 +14,7 @@ namespace core
 		virtual std::string toString() const = 0;
 		virtual std::shared_ptr<function<T> > derivative(int num) = 0;
 		virtual void optimize() = 0;
+		virtual std::shared_ptr<function<T> > clone() = 0;
 	};
 }
 
