@@ -1,5 +1,5 @@
-#ifndef __POWER_FUNCTION_H_
-#define __POWER_FUNCTION_H_
+#ifndef __EXP_FUNCTION_H_
+#define __EXP_FUNCTION_H_
 
 #include "function.h"
 #include <sstream>
@@ -7,18 +7,18 @@
 namespace core
 {
 	template <class T>
-	class power : public function<T>
+	class exp : public function<T>
 	{
-		std::shared_ptr<function<T> > m_base;
-		T m_power;
+		T m_base;
+		std::shared_ptr<function<T> > m_power;
 	public:
-		power(std::shared_ptr<function<T> > b, T p)
+		exp(T b, std::shared_ptr<function<T> > p)
 			: m_base(b)
 			, m_power(p)
 		{}
 		virtual T operator()(const T& t)
 		{
-			return std::pow((*m_base)(t), m_power);
+			return std::pow(m_base, (*m_power)(t));
 		}
 		virtual std::string toString() const
 		{
@@ -28,7 +28,7 @@ namespace core
 				return m_base.toString();
 
 			std::stringstream ss;
-			ss << m_base.toString() << "^" << m_power;
+			ss << m_base << "^" << m_power.toString();
 			return ss.str();
 		}
 		virtual std::shared_ptr<function<T> > derivative(int num)
@@ -48,9 +48,9 @@ namespace core
 
 		virtual std::shared_ptr<function<T> > clone()
 		{
-			return std::shared_ptr<function<T> >(new power<T>(m_base, m_power));
+			return std::shared_ptr<function<T> >(new exp<T>(m_base, m_power));
 		}
 	};
 }
 
-#endif // __POWER_FUNCTION_H_
+#endif // __EXP_FUNCTION_H_
