@@ -3,16 +3,22 @@
 
 #include "function.h"
 #include <sstream>
+#include <cmath>
+#include <memory>
 
 namespace core
 {
 	template <class T>
 	class power : public function<T>
 	{
-		std::shared_ptr<function<T> > m_base;
+	public:
+		typedef function<T> tBase;
+		using typename tBase::tFunctionPtr;
+	private:
+		tFunctionPtr m_base;
 		T m_power;
 	public:
-		power(std::shared_ptr<function<T> > b, T p)
+		power(tFunctionPtr b, T p)
 			: m_base(b)
 			, m_power(p)
 		{}
@@ -31,9 +37,9 @@ namespace core
 			ss << m_base.toString() << "^" << m_power;
 			return ss.str();
 		}
-		virtual std::shared_ptr<function<T> > derivative(int num)
+		virtual tFunctionPtr derivative(int num)
 		{
-			std::shared_ptr<function<T> > thisFunc = this->clone();
+			tFunctionPtr thisFunc = this->clone();
 			while (num > 0)
 			{
 				--num;
@@ -46,9 +52,9 @@ namespace core
 			// TODO - Nothing is here for now
 		}
 
-		virtual std::shared_ptr<function<T> > clone()
+		virtual tFunctionPtr clone()
 		{
-			return std::shared_ptr<function<T> >(new power<T>(m_base, m_power));
+			return tFunctionPtr(new power<T>(m_base, m_power));
 		}
 	};
 }

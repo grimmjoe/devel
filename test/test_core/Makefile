@@ -2,22 +2,30 @@ include ../../Makefile.inc
 
 CXXFLAGS+= 
 LD_FLAGS+=-L../../core/lib -lcore
-INCLUDE=-I./inc -I../ -I../../core/ -I../../core/inc/
+INCLUDE+=-I./inc -I../ -I../../core/ -I../../core/inc/
 
 
-CPP_FILES := $(wildcard src/*.cpp)
-OBJ_FILES := $(addprefix obj/,$(notdir $(CPP_FILES:.cpp=.o)))
+CPP_FILES1=src/matrix_inverse.cpp
+OBJ_FILES1=$(CPP_FILES1:.cpp=.o)
+CPP_FILES2=src/expr_parser.cpp
+OBJ_FILES2=$(CPP_FILES2:.cpp=.o)
 EXE:= bin/matrix_inverse
+EXE2:=bin/expr_parser
 
-default: $(EXE)
+default: $(EXE) $(EXE2)
 
 .PHONY: directories
 
-$(EXE): directories $(OBJ_FILES)
-	$(CXX) $(LD_FLAGS)  -o $@ $(OBJ_FILES)
+$(EXE): directories $(OBJ_FILES1)
+	$(CXX) $(LD_FLAGS)  -o $@ $(OBJ_FILES1)
 
-obj/%.o: src/%.cpp
-	$(CXX) $(CXXFLAGS) $(INCLUDE) -c -o $@ $<
+$(EXE2): directories $(OBJ_FILES2)
+	$(CXX) $(LD_FLAGS)  -o $@ $(OBJ_FILES2)
+
+.cpp.o:
+	$(CXX) $(CXXFLAGS) $(INCLUDE) -c $< -o $@
+
+
 
 directories: bin obj
 

@@ -10,11 +10,14 @@ namespace core
 	class function
 	{
 	public:
+		typedef function<T> tFunction;
+		typedef std::shared_ptr<tFunction> tFunctionPtr;
+
 		virtual T operator()(const T& t) = 0;
 		virtual std::string toString() const = 0;
-		virtual std::shared_ptr<function<T> > derivative(int num) = 0;
+		virtual tFunctionPtr derivative(int num) = 0;
 		virtual void optimize() = 0;
-		virtual std::shared_ptr<function<T> > clone() = 0;
+		virtual tFunctionPtr clone() = 0;
 	};
 }
 

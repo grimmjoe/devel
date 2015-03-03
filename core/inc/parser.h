@@ -2,34 +2,21 @@
 #define __PARSER_H_
 
 #include "function.h"
+#include "power_function.h"
+#include "exp_function.h"
+#include "constant_function.h"
+#include "parameter_function.h"
+#include "strings.h"
 #include <memory>
 #include <string>
 #include <stack>
 #include <vector>
 #include <iterator>
 #include <iostream>
+#include <cassert>
 
 namespace core
 {
-	//extern const char sLeftPar;
-	//extern const char sRightPar;
-	//extern const char sPlus;
-	//extern const char sMinus;
-	//extern const char sMult;
-	//extern const char sDiv;
-	//extern const char sPower;
-	//extern const char sParam;
-	//extern const std::string sExp;
-	const char sLeftPar 	= '(';
-	const char sRightPar 	= ')';
-	const char sPlus 		= '+';
-	const char sMinus		= '-';
-	const char sMult		= '*';
-	const char sDiv			= '/';
-	const char sPower		= '^';
-	const char sParam		= 't';
-	const std::string sExp	= "exp";
-
 	class parserException : public std::exception
 	{
 		std::string err;
@@ -51,6 +38,7 @@ namespace core
 		{}
 		std::shared_ptr<function<T> > parse(const std::string& expression)
 		{
+			typedef typename function<T>::tFunctionPtr tFunctionPtr;
 			std::cout << __func__ << std::endl;
 			std::cout << "expression = " << expression << std::endl;
 			std::shared_ptr<function<T> > ret(nullptr);
@@ -59,6 +47,32 @@ namespace core
 			get_postfix(expression, std::back_inserter(post));
 			std::copy(post.begin(), post.end(), std::ostream_iterator<std::string>(std::cout, ""));
 			std::cout << std::endl;
+			std::stack<std::shared_ptr<function<T> > > theStack;
+			for (auto it = post.begin(); it != post.end(); ++it)
+			{
+				std::string val = *it;
+				assert (!val.empty());
+
+				if (is_operator(val[0]))
+				{
+					continue;
+				}
+				if (is_parameter(val))
+				{
+					theStack.push(tFunctionPtr(new parameter<T>()));
+					continue;
+				}
+				if (check_token(val))
+				{
+					continue;
+				}
+				std::stringstream ss;
+				T v;
+				ss << val;
+				ss >> v;
+				theStack.push(tFunctionPtr(new const_function<T>(v)));
+			}
+
 			return ret;
 		}
 	protected:
@@ -66,11 +80,11 @@ namespace core
 		{
 			switch (op)
 			{
-			case sPlus:
-			case sMinus:
-			case sDiv:
-			case sMult:
-			case sPower:
+			case strings::sPlus:
+			case strings::sMinus:
+			case strings::sDiv:
+			case strings::sMult:
+			case strings::sPower:
 				return true;
 			default:
 				return false;
@@ -85,12 +99,17 @@ namespace core
 		
 		bool is_parethesis(char c) const
 		{
-			return (c == sLeftPar) || (c == sRightPar);
+			return (c == strings::sLeftPar) || (c == strings::sRightPar);
+		}
+
+		bool is_parameter(const std::string& op)
+		{
+			return (op.size() != 1 ? false : is_parameter(op[0]));
 		}
 
 		bool is_parameter(char c) const
 		{
-			return c == sParam;
+			return c == strings::sParam;
 		}
 
 		bool is_numeric(char c) const
@@ -102,13 +121,13 @@ namespace core
 		{
 			switch (c)
 			{
-			case sPower:
+			case strings::sPower:
 				return 4;
-			case sMult:
-			case sDiv:
+			case strings::sMult:
+			case strings::sDiv:
 				return 3;
-			case sPlus:
-			case sMinus:
+			case strings::sPlus:
+			case strings::sMinus:
 				return 2;
 			default:
 				return 0;
@@ -118,7 +137,7 @@ namespace core
 
 		bool check_token(const std::string& t) const
 		{
-			return t == sExp;
+			return t == EXPONENT;
 		}
 
 		template <class IT>
@@ -194,7 +213,7 @@ namespace core
 						number.clear();
 					}
 					param.clear();
-					if (*it == sLeftPar)
+					if (*it == strings::sLeftPar)
 					{
 						std::cout << "Was left\n";
 						if (!token.empty() && check_token(token))
@@ -209,7 +228,7 @@ namespace core
 					{
 						std::string op = ops.top();
 						std::cout << "In the stack checking " << op << std::endl;
-						if (op[0] == sLeftPar)
+						if (op[0] == strings::sLeftPar)
 						{
 							std::cout << "Found the left par\n";
 							found = true;

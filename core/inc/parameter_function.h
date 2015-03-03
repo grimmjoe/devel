@@ -1,31 +1,31 @@
-#ifndef __CONSTANT_FUNCTION_H_
-#define __CONSTANT_FUNCTION_H_
+#ifndef __PARAMETER_FUNCTION_H_
+#define __PARAMETER_FUNCTION_H_
 
 #include "function.h"
+#include "strings.h"
+#include "constant_function.h"
 #include <sstream>
 
 namespace core
 {
 	template <class T>
-	class const_function : public function<T>
+	class parameter : public function<T>
 	{
 	public:
 		typedef function<T> tBase;
 		using typename tBase::tFunctionPtr;
 	private:
-		T m_value;
 	public:
-		const_function(const T& b)
-			: m_value(b)
+		parameter()
 		{}
-		virtual T operator()(const T&)
+		virtual T operator()(const T& t)
 		{
-			return m_value;
+			return t;
 		}
 		virtual std::string toString() const
 		{
 			std::stringstream ss;
-			ss << m_value;
+			ss << strings::sParam;
 			return ss.str();
 		}
 		virtual tFunctionPtr derivative(int num)
@@ -45,10 +45,9 @@ namespace core
 
 		virtual tFunctionPtr clone()
 		{
-			//return std::shared_ptr<function<T> >(new const_function<T>(m_value));
-			return tFunctionPtr(new const_function<T>(m_value));
+			return tFunctionPtr(new parameter<T>());
 		}
 	};
 }
 
-#endif // __CONSTANT_FUNCTION_H_
+#endif // __PARAMETER_FUNCTION_H_

@@ -9,10 +9,14 @@ namespace core
 	template <class T>
 	class exp : public function<T>
 	{
-		T m_base;
-		std::shared_ptr<function<T> > m_power;
 	public:
-		exp(T b, std::shared_ptr<function<T> > p)
+		typedef function<T> tBase;
+		using typename tBase::tFunctionPtr;
+	private:
+		T m_base;
+		tFunctionPtr m_power;
+	public:
+		exp(T b, tFunctionPtr p)
 			: m_base(b)
 			, m_power(p)
 		{}
@@ -31,9 +35,9 @@ namespace core
 			ss << m_base << "^" << m_power.toString();
 			return ss.str();
 		}
-		virtual std::shared_ptr<function<T> > derivative(int num)
+		virtual tFunctionPtr derivative(int num)
 		{
-			std::shared_ptr<function<T> > thisFunc = this->clone();
+			tFunctionPtr thisFunc = this->clone();
 			while (num > 0)
 			{
 				--num;
@@ -46,9 +50,9 @@ namespace core
 			// TODO - Nothing is here for now
 		}
 
-		virtual std::shared_ptr<function<T> > clone()
+		virtual tFunctionPtr clone()
 		{
-			return std::shared_ptr<function<T> >(new exp<T>(m_base, m_power));
+			return tFunctionPtr(new exp<T>(m_base, m_power));
 		}
 	};
 }
