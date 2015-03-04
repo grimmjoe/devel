@@ -1,6 +1,6 @@
 include ../../Makefile.inc
 
-CXXFLAGS+= 
+CXXFLAGS += -MMD -O2
 LD_FLAGS+=-L../../core/lib -lcore
 INCLUDE+=-I./inc -I../ -I../../core/ -I../../core/inc/
 
@@ -37,7 +37,8 @@ obj:
 
 clean:
 	rm -rf bin	\
-	rm -rf obj
+	rm -rf obj	\
+	rm -rf .depend
 
-CXXFLAGS += -MMD
--include $(OBJ_FILES:.o=.d)
+include $(OBJ_FILES1:.o=.d)
+include $(OBJ_FILES2:.o=.d)

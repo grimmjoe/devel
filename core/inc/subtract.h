@@ -1,40 +1,39 @@
-#ifndef __PARAMETER_FUNCTION_H_
-#define __PARAMETER_FUNCTION_H_
+#ifndef __SUBTRACT_H_
+#define __SUBTRACT_H_
 
 #include "function.h"
 #include "strings.h"
-#include "constant_function.h"
 #include <sstream>
 
 namespace core
 {
 	template <class T>
-	class parameter : public function<T>
+	class subtract : public function<T>
 	{
 	public:
 		typedef function<T> tBase;
 		using typename tBase::tFunctionPtr;
 	private:
+		tFunctionPtr m_op1;
+		tFunctionPtr m_op2;
 	public:
-		parameter()
+		subtract(tFunctionPtr op1, tFunctionPtr op2)
+			: m_op1(op1)
+			, m_op2(op2)
 		{}
 		virtual T operator()(const T& t)
 		{
-			return t;
+			return (*m_op1)(t)-(*m_op2)(t);
 		}
 		virtual std::string toString() const
 		{
 			std::stringstream ss;
-			ss << strings::sParam;
+			ss << m_op1->toString() << strings::sMinus << m_op2->toString();
 			return ss.str();
 		}
 		virtual tFunctionPtr derivative(int num)
 		{
-			if (num == 0)
-				return this->clone();
-			if (num == 1)
-				return tFunctionPtr(new const_function<T>(1));
-			return tFunctionPtr(new const_function<T>(0));
+			return tFunctionPtr(new subtract<T>(m_op1->derivative(num), m_op2->derivative(num)));
 		}
 
 		virtual void optimize()
@@ -44,9 +43,10 @@ namespace core
 
 		virtual tFunctionPtr clone()
 		{
-			return tFunctionPtr(new parameter<T>());
+			return tFunctionPtr(new subtract<T>(m_op1, m_op2));
 		}
-	};
+	}; // class subtract
+
 }
 
-#endif // __PARAMETER_FUNCTION_H_
+#endif // __SUBTRACT_H_

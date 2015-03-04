@@ -2,7 +2,7 @@
 ##CXXFLAGS=-Wall -fPIC -std=c++11
 ##LD_FLAGS=-shared
 include ../Makefile.inc
-CXXFLAGS+= -fPIC
+CXXFLAGS+= -fPIC -O2
 LD_FLAGS+=-shared
 INCLUDE=-Iinc/
 

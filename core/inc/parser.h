@@ -6,6 +6,8 @@
 #include "exp_function.h"
 #include "constant_function.h"
 #include "parameter_function.h"
+#include "negate_function.h"
+#include "arithmetic_functions.h"
 #include "strings.h"
 #include <memory>
 #include <string>
@@ -41,7 +43,6 @@ namespace core
 			typedef typename function<T>::tFunctionPtr tFunctionPtr;
 			std::cout << __func__ << std::endl;
 			std::cout << "expression = " << expression << std::endl;
-			std::shared_ptr<function<T> > ret(nullptr);
 			std::vector<std::string> post;
 			post.reserve(expression.size());
 			get_postfix(expression, std::back_inserter(post));
@@ -52,9 +53,74 @@ namespace core
 			{
 				std::string val = *it;
 				assert (!val.empty());
+				std::cout << "Processing " << val << std::endl;
 
 				if (is_operator(val[0]))
 				{
+					if (val.size() > 1 && val[0] == strings::sMinus)
+					{
+						std::cout << "Need to negate\n";
+						tFunctionPtr f = theStack.top();
+						theStack.pop();
+						theStack.push(tFunctionPtr(new negate<T>(f)));
+						std::cout << "Pushed the new function\n";
+						continue;
+					}
+					switch (val[0])
+					{
+					case strings::sPlus:
+					{
+						tFunctionPtr f1 = theStack.top();
+						theStack.pop();
+						tFunctionPtr f2 = theStack.top();
+						theStack.pop();
+						theStack.push(tFunctionPtr(new add<T>(f2, f1)));
+					}
+					break;
+					case strings::sMinus:
+					{
+						tFunctionPtr f1 = theStack.top();
+						theStack.pop();
+						tFunctionPtr f2 = theStack.top();
+						theStack.pop();
+						theStack.push(tFunctionPtr(new subtract<T>(f2, f1)));
+					}
+					break;
+					case strings::sMult:
+					{
+						tFunctionPtr f1 = theStack.top();
+						theStack.pop();
+						tFunctionPtr f2 = theStack.top();
+						theStack.pop();
+						theStack.push(tFunctionPtr(new multiply<T>(f2, f1)));
+					}
+					break;
+					case strings::sDiv:
+					{
+						tFunctionPtr f1 = theStack.top();
+						theStack.pop();
+						tFunctionPtr f2 = theStack.top();
+						theStack.pop();
+						theStack.push(tFunctionPtr(new divide<T>(f2, f1)));
+					}
+					break;
+					case strings::sPower:
+					{
+						tFunctionPtr f1 = theStack.top();
+						theStack.pop();
+						tFunctionPtr f2 = theStack.top();
+						theStack.pop();
+						const std::string f1_str = f1->toString();
+						std::stringstream ss;
+						ss << f1_str;
+						T p;
+						ss >> p;
+						std::cout << "power = " << f1_str << std::endl;
+						std::cout << "power in double = " << p << std::endl;
+						theStack.push(tFunctionPtr(new power<T>(f2, p)));
+					}
+					break;
+					}
 					continue;
 				}
 				if (is_parameter(val))
@@ -64,16 +130,26 @@ namespace core
 				}
 				if (check_token(val))
 				{
+					if (val == EXPONENT)
+					{
+						tFunctionPtr f1 = theStack.top();
+						theStack.pop();
+						theStack.push(tFunctionPtr(new exp<T>(std::exp(1), f1)));
+					}
+					else
+					{
+						assert (! "Unknown function");
+					}
 					continue;
 				}
 				std::stringstream ss;
 				T v;
 				ss << val;
 				ss >> v;
+				std::cout << "Const = " << v << std::endl;
 				theStack.push(tFunctionPtr(new const_function<T>(v)));
 			}
-
-			return ret;
+			return (theStack.empty() ? tFunctionPtr(nullptr) : theStack.top());
 		}
 	protected:
 		bool is_operator(char op) const
@@ -94,6 +170,8 @@ namespace core
 
 		bool is_operator(const std::string& op) const
 		{
+			if (op.size() > 1 && op[0] == strings::sMinus)
+				return true;
 			return (op.size() != 1 ? false : is_operator(op[0]));
 		}
 		
@@ -115,6 +193,13 @@ namespace core
 		bool is_numeric(char c) const
 		{
 			return (c >= '0' && c <= '9') || (c == '.');
+		}
+
+		int precedence(const std::string& s) const
+		{
+			if (s.size() > 1 && s[0] == strings::sMinus)
+				return precedence(strings::sDiv);
+			return precedence(s[0]);
 		}
 
 		int precedence(char c) const
@@ -161,19 +246,21 @@ namespace core
 						number.clear();
 					}
 					param.clear();
-					if (is_start)
+					std::string current(1, *it);
+					if (is_start && (current[0] == strings::sMinus))
 					{
-						ops.push(std::string(2, *it));
+						current.push_back(strings::sMinus);
 						is_start = false;
-						continue;
 					}
 					is_start = false;
-					int pit = precedence(*it);
+					int pit = precedence(current[0]);
+					if (current.size() > 1)
+						pit = precedence(strings::sDiv);
 					while (!ops.empty())
 					{
 						std::string op = ops.top();
 						std::cout << "In the stack checking " << op << std::endl;
-						if (is_operator(op) && (precedence(op[0]) >= pit))
+						if (is_operator(op) && (precedence(op) >= pit))
 						{
 							*output++ = op;
 							ops.pop();
@@ -182,7 +269,7 @@ namespace core
 						else
 							break;
 					}
-					ops.push(std::string(1, *it));
+					ops.push(current);
 				}
 				else if (is_parameter(*it))
 				{

@@ -1,5 +1,5 @@
-#ifndef __PARAMETER_FUNCTION_H_
-#define __PARAMETER_FUNCTION_H_
+#ifndef __NEGATE_FUNCTION_H_
+#define __NEGATE_FUNCTION_H_
 
 #include "function.h"
 #include "strings.h"
@@ -9,32 +9,30 @@
 namespace core
 {
 	template <class T>
-	class parameter : public function<T>
+	class negate : public function<T>
 	{
 	public:
 		typedef function<T> tBase;
 		using typename tBase::tFunctionPtr;
 	private:
+		tFunctionPtr m_base;
 	public:
-		parameter()
+		negate(tFunctionPtr b)
+			: m_base(b)
 		{}
 		virtual T operator()(const T& t)
 		{
-			return t;
+			return -(*m_base)(t);
 		}
 		virtual std::string toString() const
 		{
 			std::stringstream ss;
-			ss << strings::sParam;
+			ss << "-" << "(" << m_base->toString() << ")";
 			return ss.str();
 		}
 		virtual tFunctionPtr derivative(int num)
 		{
-			if (num == 0)
-				return this->clone();
-			if (num == 1)
-				return tFunctionPtr(new const_function<T>(1));
-			return tFunctionPtr(new const_function<T>(0));
+			return tFunctionPtr(new negate<T>(m_base->derivative(num)));
 		}
 
 		virtual void optimize()
@@ -44,9 +42,9 @@ namespace core
 
 		virtual tFunctionPtr clone()
 		{
-			return tFunctionPtr(new parameter<T>());
+			return tFunctionPtr(new negate<T>(m_base));
 		}
 	};
 }
 
-#endif // __PARAMETER_FUNCTION_H_
+#endif // __NEGATE_FUNCTION_H_
