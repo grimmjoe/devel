@@ -39,9 +39,11 @@ namespace core
 		}
 		virtual tFunctionPtr derivative(int num)
 		{
+			if (num == 0)
+				return this->clone();
 			return tFunctionPtr(new add<T>(
-						tFunctionPtr(new multiply<T>(m_op1->derivative(num), m_op2)),
-						tFunctionPtr(new multiply<T>(m_op1, m_op2->derivative(num)))));
+						tFunctionPtr(new multiply<T>(m_op1->derivative(1), m_op2))->derivative(num-1),
+						tFunctionPtr(new multiply<T>(m_op1, m_op2->derivative(1)))->derivative(num-1)));
 		}
 
 		virtual void optimize()

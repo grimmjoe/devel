@@ -40,8 +40,8 @@ namespace core
 				return this->clone();
 			tFunctionPtr ptr(new divide<T>(
 					tFunctionPtr(new subtract<T>(
-						tFunctionPtr(new multiply<T>(m_op1->derivative(num), m_op2)),
-						tFunctionPtr(new multiply<T>(m_op1, m_op2->derivative(num)))
+						tFunctionPtr(new multiply<T>(m_op1->derivative(1), m_op2)),
+						tFunctionPtr(new multiply<T>(m_op1, m_op2->derivative(1)))
 						)),
 					tFunctionPtr(new power<T>(m_op2, 2))
 					));

@@ -41,29 +41,29 @@ namespace core
 		std::shared_ptr<function<T> > parse(const std::string& expression)
 		{
 			typedef typename function<T>::tFunctionPtr tFunctionPtr;
-			std::cout << __func__ << std::endl;
-			std::cout << "expression = " << expression << std::endl;
+			//std::cout << __func__ << std::endl;
+			//std::cout << "expression = " << expression << std::endl;
 			std::vector<std::string> post;
 			post.reserve(expression.size());
 			get_postfix(expression, std::back_inserter(post));
-			std::copy(post.begin(), post.end(), std::ostream_iterator<std::string>(std::cout, ""));
-			std::cout << std::endl;
+			//std::copy(post.begin(), post.end(), std::ostream_iterator<std::string>(std::cout, ""));
+			//std::cout << std::endl;
 			std::stack<std::shared_ptr<function<T> > > theStack;
 			for (auto it = post.begin(); it != post.end(); ++it)
 			{
 				std::string val = *it;
 				assert (!val.empty());
-				std::cout << "Processing " << val << std::endl;
+				//std::cout << "Processing " << val << std::endl;
 
 				if (is_operator(val[0]))
 				{
 					if (val.size() > 1 && val[0] == strings::sMinus)
 					{
-						std::cout << "Need to negate\n";
+						//std::cout << "Need to negate\n";
 						tFunctionPtr f = theStack.top();
 						theStack.pop();
 						theStack.push(tFunctionPtr(new negate<T>(f)));
-						std::cout << "Pushed the new function\n";
+						//std::cout << "Pushed the new function\n";
 						continue;
 					}
 					switch (val[0])
@@ -115,8 +115,8 @@ namespace core
 						ss << f1_str;
 						T p;
 						ss >> p;
-						std::cout << "power = " << f1_str << std::endl;
-						std::cout << "power in double = " << p << std::endl;
+						//std::cout << "power = " << f1_str << std::endl;
+						//std::cout << "power in double = " << p << std::endl;
 						theStack.push(tFunctionPtr(new power<T>(f2, p)));
 					}
 					break;
@@ -146,7 +146,7 @@ namespace core
 				T v;
 				ss << val;
 				ss >> v;
-				std::cout << "Const = " << v << std::endl;
+				//std::cout << "Const = " << v << std::endl;
 				theStack.push(tFunctionPtr(new const_function<T>(v)));
 			}
 			return (theStack.empty() ? tFunctionPtr(nullptr) : theStack.top());
@@ -235,13 +235,13 @@ namespace core
 			bool is_start = true;
 			for (auto it = expression.begin(); it != expression.end(); ++it)
 			{
-				std::cout << "Processing " << *it << std::endl;
+				//std::cout << "Processing " << *it << std::endl;
 				if (is_operator(*it))
 				{
-					std::cout << "Was operator\n";
+					//std::cout << "Was operator\n";
 					if (!number.empty())
 					{
-						std::cout << "Number was not empty, adding " << number << std::endl;
+						//std::cout << "Number was not empty, adding " << number << std::endl;
 						*output++ = number;
 						number.clear();
 					}
@@ -259,12 +259,12 @@ namespace core
 					while (!ops.empty())
 					{
 						std::string op = ops.top();
-						std::cout << "In the stack checking " << op << std::endl;
+						//std::cout << "In the stack checking " << op << std::endl;
 						if (is_operator(op) && (precedence(op) >= pit))
 						{
 							*output++ = op;
 							ops.pop();
-							std::cout << op << " added, now poping" << std::endl;
+							//std::cout << op << " added, now poping" << std::endl;
 						}
 						else
 							break;
@@ -274,7 +274,7 @@ namespace core
 				else if (is_parameter(*it))
 				{
 					is_start = false;
-					std::cout << "Was parameter\n";
+					//std::cout << "Was parameter\n";
 					if (!number.empty() || !param.empty() || !token.empty())
 						throw parserException("Invalid number or parameter");
 					param = *it;
@@ -284,7 +284,7 @@ namespace core
 				else if (is_numeric(*it))
 				{
 					is_start = false;
-					std::cout << "Was numeric\n";
+					//std::cout << "Was numeric\n";
 					if (!param.empty() || !token.empty())
 						throw parserException("Invalid number or parameter");
 					number += *it;
@@ -292,21 +292,21 @@ namespace core
 				else if (is_parethesis(*it))
 				{
 					is_start = true;
-					std::cout << "Was parenthesis\n";
+					//std::cout << "Was parenthesis\n";
 					if (!number.empty())
 					{
-						std::cout << "Number was not empty, adding " << number << std::endl;
+						//std::cout << "Number was not empty, adding " << number << std::endl;
 						*output++ = number;
 						number.clear();
 					}
 					param.clear();
 					if (*it == strings::sLeftPar)
 					{
-						std::cout << "Was left\n";
+						//std::cout << "Was left\n";
 						if (!token.empty() && check_token(token))
 							ops.push(token);
 						token.clear();
-						std::cout << "Added to the stack\n";
+						//std::cout << "Added to the stack\n";
 						ops.push(std::string(1, *it));
 						continue;
 					}
@@ -314,15 +314,15 @@ namespace core
 					while (!ops.empty())
 					{
 						std::string op = ops.top();
-						std::cout << "In the stack checking " << op << std::endl;
+						//std::cout << "In the stack checking " << op << std::endl;
 						if (op[0] == strings::sLeftPar)
 						{
-							std::cout << "Found the left par\n";
+							//std::cout << "Found the left par\n";
 							found = true;
 							ops.pop();
 							break;
 						}
-						std::cout << "Not found the left par yet, so popping the ops\n";
+						//std::cout << "Not found the left par yet, so popping the ops\n";
 						*output++ = op;
 						ops.pop();
 					}
@@ -330,7 +330,7 @@ namespace core
 						throw parserException("Closing parenthesis without opening one");
 					if (!ops.empty() && !is_operator(ops.top()) && !is_parethesis(ops.top()[0]))
 					{
-						std::cout << "Found a function - " << ops.top() << std::endl;
+						//std::cout << "Found a function - " << ops.top() << std::endl;
 						*output++ = ops.top();
 						ops.pop();
 					}
@@ -340,7 +340,7 @@ namespace core
 				{
 					if (!number.empty() || !param.empty())
 						throw parserException("Invalid number or parameter");
-					std::cout << "This is a token, accumulate " << *it << std::endl;
+					//std::cout << "This is a token, accumulate " << *it << std::endl;
 					token += *it;
 				}
 			}

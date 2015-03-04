@@ -33,6 +33,8 @@ namespace core
 		}
 		virtual tFunctionPtr derivative(int num)
 		{
+			if (num == 0)
+				return this->clone();
 			return tFunctionPtr(new add<T>(m_op1->derivative(num), m_op2->derivative(num)));
 		}
 

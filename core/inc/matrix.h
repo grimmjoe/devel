@@ -141,14 +141,14 @@ namespace core
 			return mMatrix.at(i);
 		}
 
-		template <class Elem>
-		friend std::ostream& operator<<(std::ostream& out, const matrix<Elem>& m)
+		friend std::ostream& operator<<(std::ostream& out, const matrix<E>& m)
 		{
+
 			std::for_each(m.mMatrix.begin(), m.mMatrix.end(),
-				[&](const typename matrix<Elem>::tRow& r)
+				[&](const typename matrix<E>::tRow& r)
 				{
 					std::copy(r.begin(), r.end(),
-						std::ostream_iterator<Elem>(out, " "));
+						std::ostream_iterator<E>(out, " "));
 					out << std::endl;
 				}
 				);
