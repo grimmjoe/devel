@@ -5,6 +5,7 @@
 #include "strings.h"
 #include "multiply.h"
 #include "add.h"
+#include "power_function.h"
 #include "subtract.h"
 #include <sstream>
 

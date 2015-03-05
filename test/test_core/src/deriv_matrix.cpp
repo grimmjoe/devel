@@ -1,3 +1,5 @@
+
+#include "arithmetic.h"
 #include "function.h"
 #include "matrix.h"
 #include "parser.h"
@@ -49,6 +51,14 @@ int main(int argc, char* argv[])
 		}
 	}
 	std::cout << "The matrix:\n";
+	printFuncMatrix(theMatrix);
+	std::cout << "Calculating the A^3...\n";
+	tMatrix theM = theMatrix * theMatrix;
+	//std::cout << "A^2:\n";
+	//theMatrix = theM;
+	//printFuncMatrix(theMatrix);
+	theMatrix = theM * theMatrix;
+	std::cout << "A^3:\n";
 	printFuncMatrix(theMatrix);
 	typedef core::matrix<double> tDiscrete;
 	std::vector<tDiscrete> theDiscretes(k+1, tDiscrete(m, n, 0));
