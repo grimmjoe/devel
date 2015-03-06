@@ -86,7 +86,11 @@ int main(int argc, char* argv[])
 	//}
 	std::cout << "\nDiscretes:\n";
 	std::copy(theDiscretes.begin(), theDiscretes.end(), std::ostream_iterator<tDiscrete>(std::cout, "\n"));
-
+	std::cout << "\nRestoring the original\n";
+	tMatrix origMatrix(m, n, tFunctionPtr(nullptr));
+	app.restoreTaylorSingle(theDiscretes, origMatrix);
+	std::cout << "The original:\n";
+	printFuncMatrix(origMatrix);
 
 	return 0;
 }
