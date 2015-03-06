@@ -69,8 +69,8 @@ int main(int argc, char* argv[])
 	//std::vector<tDiscrete> theDiscretes(k+1, tDiscrete(m, n, 0));
 	tDiffInfo di(tv, 1, k);
 	tDiscretes theDiscretes;
-	tApp app;
-	app.applyDiffTrans(theMatrix, di, theDiscretes);
+	tApp app(di);
+	app.applyDiffTrans(theMatrix, theDiscretes);
 	//for (int K = 0; K <= k; ++K)
 	//{
 	//	for (int i = 1; i <= m; ++i)
