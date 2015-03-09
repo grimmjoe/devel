@@ -230,6 +230,31 @@ namespace core
 		//
 		bool isBInvertible(const tMatrixDiscretes& A, const tMatrixDiscretes& B, int r) const;
 
+		//
+		/// Get the (Q)-inverse
+		//
+		bool getQInverse(const tFuncMatrix& A, const tFuncMatrix& Q, tMatrixDiscretes& binv);
+
+		//
+		/// Get the (Q)-inverse
+		//
+		bool getQInverse(const tFuncMatrix& A, int r, const tFuncMatrix& Q, tMatrixDiscretes& binv);
+
+		//
+		/// Get the (Q)-inverse
+		//
+		bool getQInverse(const tMatrixDiscretes& A, int r, const tMatrixDiscretes& Q, tMatrixDiscretes& binv);
+
+		//
+		/// Check if the matrx is (Q)-invertible
+		//
+		bool isQInvertible(const tFuncMatrix& A, const tFuncMatrix& Q, int r) const;
+
+		//
+		/// Check if the matrx is (Q)-invertible
+		//
+		bool isQInvertible(const tMatrixDiscretes& A, const tMatrixDiscretes& Q, int r) const;
+
 	
 	//// Checks
 	public:
@@ -361,6 +386,73 @@ bool core::apparatus<T, algo>::getBInverse(const tMatrixDiscretes& A, int r, con
 	// Calculate the (B)-inverse
 	//
 	return this->multDiscretes(B, AB1, binv);
+}
+
+template <class T, int algo>
+bool core::apparatus<T, algo>::isQInvertible(const tFuncMatrix& A, const tFuncMatrix& Q, int r) const
+{
+	// TODO - What about the matrix Q?
+	// TODO - the product Q*A must be invertible
+	return (r == A.getNumCols()) && (A.getNumCols() < A.getNumRows())
+			&& (Q.getNumRows() == A.getNumCols()) && (Q.getNumCols() == A.getNumRows());
+}
+
+template <class T, int algo>
+bool core::apparatus<T, algo>::isQInvertible(const tMatrixDiscretes& A, const tMatrixDiscretes& Q, int r) const
+{
+	// TODO - What about the matrix Q?
+	// TODO - the product Q*A must be invertible
+	assert (m_di.K >= 0);
+	return (r == A[0].getNumCols()) && (A[0].getNumCols() < A[0].getNumRows())
+			&& (Q[0].getNumRows() == A[0].getNumCols()) && (Q[0].getNumCols() == A[0].getNumRows());
+}
+
+template <class T, int algo>
+bool core::apparatus<T, algo>::getQInverse(const tFuncMatrix& A, const tFuncMatrix& Q, tMatrixDiscretes& binv)
+{
+	return this->getQInverse(A, this->getRank(A), Q, binv);
+}
+
+template <class T, int algo>
+bool core::apparatus<T, algo>::getQInverse(const tFuncMatrix& A, int r, const tFuncMatrix& Q, tMatrixDiscretes& binv)
+{
+	if (!this->isQInvertible(A, Q, r))
+		throw algoException("(Q)-Inversion: The matrix is not (Q)-invertible");
+	tMatrixDiscretes discretes;
+	this->applyDiffTrans(A, discretes);
+	tMatrixDiscretes bDiscs;
+	this->applyDiffTrans(Q, bDiscs);
+	return this->getQInverse(discretes, r, bDiscs, binv);
+}
+
+template <class T, int algo>
+bool core::apparatus<T, algo>::getQInverse(const tMatrixDiscretes& A, int r, const tMatrixDiscretes& Q, tMatrixDiscretes& binv)
+{
+	if (!this->isQInvertible(A, Q, r))
+		throw algoException("(Q)-Inversion: The matrix is not (Q)-invertible");
+	
+	//std::cout << "A:\n";
+	//std::copy(A.begin(), A.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
+	//std::cout << "Q:\n";
+	//std::copy(Q.begin(), Q.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
+	//
+	// Calculate the product of Q*A
+	//
+	tMatrixDiscretes QA;
+	this->multDiscretes(Q, A, QA);
+	//std::cout << "QA:\n";
+	//std::copy(QA.begin(), QA.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
+	//
+	// Calculate the inverse to it
+	//
+	tMatrixDiscretes QA1;
+	this->getInverse(QA, r, QA1);
+	//std::cout << "QA1:\n";
+	//std::copy(QA1.begin(), QA1.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
+	////
+	// Calculate the (Q)-inverse
+	//
+	return this->multDiscretes(QA1, Q, binv);
 }
 
 template <class T, int algo>

@@ -13,12 +13,15 @@ CPP_FILES3=src/deriv_matrix.cpp
 OBJ_FILES3=$(CPP_FILES3:.cpp=.o)
 CPP_FILES4=src/b_inverse.cpp
 OBJ_FILES4=$(CPP_FILES4:.cpp=.o)
+CPP_FILES5=src/q_inverse.cpp
+OBJ_FILES5=$(CPP_FILES5:.cpp=.o)
 EXE:= bin/matrix_inverse
 EXE2:=bin/expr_parser
 EXE3:=bin/deriv_matrix
 EXE4:=bin/b_inverse
+EXE5:=bin/q_inverse
 
-default: $(EXE) $(EXE2) $(EXE3) $(EXE4)
+default: $(EXE) $(EXE2) $(EXE3) $(EXE4) $(EXE5)
 
 .PHONY: directories
 
@@ -33,6 +36,9 @@ $(EXE3): directories $(OBJ_FILES3)
 
 $(EXE4): directories $(OBJ_FILES4)
 	$(CXX) $(LD_FLAGS)  -o $@ $(OBJ_FILES4)
+
+$(EXE5): directories $(OBJ_FILES5)
+	$(CXX) $(LD_FLAGS)  -o $@ $(OBJ_FILES5)
 
 .cpp.o:
 	$(CXX) $(CXXFLAGS) $(INCLUDE) -c $< -o $@
@@ -56,3 +62,4 @@ clean:
 -include $(OBJ_FILES2:.o=.d)
 -include $(OBJ_FILES3:.o=.d)
 -include $(OBJ_FILES4:.o=.d)
+-include $(OBJ_FILES5:.o=.d)
