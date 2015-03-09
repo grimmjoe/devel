@@ -85,9 +85,9 @@ namespace core
 		}
 	
 		//
-		/// Apply the Taylor-diff transformation @a m_di on the @a sourceMatrix into the discretes @a discs
+		/// Apply the Taylor-diff transformation @a m_di on the @a A into the discretes @a discs
 		//
-		bool applyDiffTrans(const tFuncMatrix& sourceMatrix, tMatrixDiscretes& discs);
+		bool applyDiffTrans(const tFuncMatrix& A, tMatrixDiscretes& discs);
 
 		//
 		/// Add 2 discretes
@@ -113,12 +113,12 @@ namespace core
 		//
 		/// Get LU decomposition of the matrix
 		//
-		bool getLU(const tFuncMatrix& sourceMatrix, tMatrixDiscretes& l, tMatrixDiscretes& u);
+		bool getLU(const tFuncMatrix& A, tMatrixDiscretes& l, tMatrixDiscretes& u);
 
 		//
 		/// Get LU decomposition of the matrix
 		//
-		bool getLU(const tFuncMatrix& sourceMatrix, int r, tMatrixDiscretes& l, tMatrixDiscretes& u);
+		bool getLU(const tFuncMatrix& A, int r, tMatrixDiscretes& l, tMatrixDiscretes& u);
 
 		//
 		/// Get LU decomposition of the matrix discretes
@@ -128,101 +128,136 @@ namespace core
 		//
 		/// Get the rank of the matrix
 		//
-		int getRank(const tFuncMatrix& theMatrix) const;
+		int getRank(const tFuncMatrix& A) const;
+	
+	//// Inverses
+	public:
 
 		//
 		/// Get inverse of the matrix
 		//
-		bool getInverse(const tFuncMatrix& theMatrix, tMatrixDiscretes& inv);
+		bool getInverse(const tFuncMatrix& A, tMatrixDiscretes& inv);
 
 		//
 		/// Get inverse of the matrix
 		//
-		bool getInverse(const tFuncMatrix& theMatrix, int r, tMatrixDiscretes& inv);
+		bool getInverse(const tFuncMatrix& A, int r, tMatrixDiscretes& inv);
 
 		//
 		/// Get inverse of the matrix
 		//
-		bool getInverse(const tMatrixDiscretes& theMatrix, int r, tMatrixDiscretes& inv);
+		bool getInverse(const tMatrixDiscretes& A, int r, tMatrixDiscretes& inv);
 
 		//
 		/// Get inverse of the matrix
 		//
-		bool getInverseLowerTriangular(const tFuncMatrix& theMatrix, tMatrixDiscretes& inv)
+		bool getInverseLowerTriangular(const tFuncMatrix& A, tMatrixDiscretes& inv)
 		{
-			return this->getInverseLowerTriangular(theMatrix, getRank(theMatrix), inv);
+			return this->getInverseLowerTriangular(A, getRank(A), inv);
 		}
 
 		//
 		/// Get inverse of the matrix
 		//
-		bool getInverseLowerTriangular(const tFuncMatrix& theMatrix, int r, tMatrixDiscretes& inv);
+		bool getInverseLowerTriangular(const tFuncMatrix& A, int r, tMatrixDiscretes& inv);
 
 		//
 		/// Get inverse of the matrix
 		//
-		bool getInverseLowerTriangular(const tMatrixDiscretes& theMatrix, int r, tMatrixDiscretes& inv);
+		bool getInverseLowerTriangular(const tMatrixDiscretes& A, int r, tMatrixDiscretes& inv);
 
 		//
 		/// Get inverse of the matrix
 		//
-		bool getInverseUpperTriangular(const tFuncMatrix& theMatrix, tMatrixDiscretes& inv)
+		bool getInverseUpperTriangular(const tFuncMatrix& A, tMatrixDiscretes& inv)
 		{
-			return this->getInverseUpperTriangular(theMatrix, getRank(theMatrix), inv);
+			return this->getInverseUpperTriangular(A, getRank(A), inv);
 		}
 
 		//
 		/// Get inverse of the matrix
 		//
-		bool getInverseUpperTriangular(const tFuncMatrix& theMatrix, int r, tMatrixDiscretes& inv);
+		bool getInverseUpperTriangular(const tFuncMatrix& A, int r, tMatrixDiscretes& inv);
 
 		//
 		/// Get inverse of the matrix
 		//
-		bool getInverseUpperTriangular(const tMatrixDiscretes& theMatrix, int r, tMatrixDiscretes& inv);
+		bool getInverseUpperTriangular(const tMatrixDiscretes& A, int r, tMatrixDiscretes& inv);
+
+		//
+		/// Check if the matrix is invertible or not
+		//
+		bool isInvertible(const tFuncMatrix& A) const
+		{
+			return this->isInvertible(A, this->getRank(A));
+		}
+
+		//
+		/// Check if the matrix is invertible or not
+		//
+		bool isInvertible(const tFuncMatrix& A, int r) const;
+
+		//
+		/// Check if the matrix is invertible or not
+		//
+		bool isInvertible(const tMatrixDiscretes& A, int r) const;
+
+	
+	//// (B)-, (Q)- and (B, Q)-inverses
+	public:
+		//
+		/// Get the (B)-inverse
+		//
+		bool getBInverse(const tFuncMatrix& A, const tFuncMatrix& B, tMatrixDiscretes& binv);
+
+		//
+		/// Get the (B)-inverse
+		//
+		bool getBInverse(const tFuncMatrix& A, int r, const tFuncMatrix& B, tMatrixDiscretes& binv);
+
+		//
+		/// Get the (B)-inverse
+		//
+		bool getBInverse(const tMatrixDiscretes& A, int r, const tMatrixDiscretes& B, tMatrixDiscretes& binv);
+
+		//
+		/// Check if the matrx is (B)-invertible
+		//
+		bool isBInvertible(const tFuncMatrix& A, const tFuncMatrix& B, int r) const;
+
+		//
+		/// Check if the matrx is (B)-invertible
+		//
+		bool isBInvertible(const tMatrixDiscretes& A, const tMatrixDiscretes& B, int r) const;
+
+	
+	//// Checks
+	public:
 
 		//
 		/// Check if the matrix is upper triangular or not
 		//
-		bool isUpperTriangular(const tFuncMatrix& theMatrix) const;
+		bool isUpperTriangular(const tFuncMatrix& A) const;
 
 		//
 		/// Check if the matrix is lower triangular or not
 		//
-		bool isLowerTriangular(const tFuncMatrix& theMatrix) const;
+		bool isLowerTriangular(const tFuncMatrix& A) const;
 
 		//
 		/// Check if the matrix is triangular or not
 		//
-		bool isTriangular(const tFuncMatrix& theMatrix) const
+		bool isTriangular(const tFuncMatrix& A) const
 		{
-			return this->isLowerTriangular(theMatrix) || this->isUpperTriangular(theMatrix);
+			return this->isLowerTriangular(A) || this->isUpperTriangular(A);
 		}
-
-		//
-		/// Check if the matrix is invertible or not
-		//
-		bool isInvertible(const tFuncMatrix& theMatrix) const
-		{
-			return this->isInvertible(theMatrix, this->getRank(theMatrix));
-		}
-
-		//
-		/// Check if the matrix is invertible or not
-		//
-		bool isInvertible(const tFuncMatrix& theMatrix, int r) const;
-
-		//
-		/// Check if the matrix is invertible or not
-		//
-		bool isInvertible(const tMatrixDiscretes& theMatrix, int r) const;
 
 		//
 		/// Check if the matrix is square or not
 		//
-		bool isSquare(const tFuncMatrix& theMatrix) const
+		bool isSquare(const tFuncMatrix& A) const
 		{
-			return theMatrix.getNumRows() == theMatrix.getNumCols();
+			return A.getNumRows() == A.getNumCols();
 		}
 
 		//
@@ -244,7 +279,7 @@ namespace core
 			eUpperTriangular = 1,
 			eNoneTriangular = 2
 		};
-		bool impl_getInverse(const tMatrixDiscretes& theMatrix, int r, tMatrixDiscretes& inv, eTriangularType et);
+		bool impl_getInverse(const tMatrixDiscretes& A, int r, tMatrixDiscretes& inv, eTriangularType et);
 		T impl_identity(int k, int i, int j) const
 		{
 			return (k == 0 && i == j) ? 1 : 0;
@@ -255,39 +290,106 @@ namespace core
 } // namespace core
 
 template <class T, int algo>
-int core::apparatus<T, algo>::getRank(const tFuncMatrix& theMatrix) const
+int core::apparatus<T, algo>::getRank(const tFuncMatrix& A) const
 {
 	// TODO - We need to calculate the rank correctly!!!
-	return theMatrix.getNumRows();
+	return A.getNumRows();
 }
 
 template <class T, int algo>
-bool core::apparatus<T, algo>::getInverseLowerTriangular(const tFuncMatrix& theMatrix, int r, tMatrixDiscretes& inv)
+bool core::apparatus<T, algo>::isBInvertible(const tFuncMatrix& A, const tFuncMatrix& B, int r) const
 {
-	if (!this->isInvertible(theMatrix, r))
+	// TODO - What about the matrix B?
+	// TODO - the product A*B must be invertible
+	return (A.getNumRows() < A.getNumCols()) && (r == A.getNumRows())
+			&& (B.getNumRows() == A.getNumCols()) && (B.getNumCols() == A.getNumRows());
+}
+
+template <class T, int algo>
+bool core::apparatus<T, algo>::isBInvertible(const tMatrixDiscretes& A, const tMatrixDiscretes& B, int r) const
+{
+	// TODO - What about the matrix B?
+	// TODO - the product A*B must be invertible
+	assert (m_di.K >= 0);
+	return (A[0].getNumRows() < A[0].getNumCols()) && (r == A[0].getNumRows())
+			&& (B[0].getNumRows() == A[0].getNumCols()) && (B[0].getNumCols() == A[0].getNumRows());
+}
+
+template <class T, int algo>
+bool core::apparatus<T, algo>::getBInverse(const tFuncMatrix& A, const tFuncMatrix& B, tMatrixDiscretes& binv)
+{
+	return this->getBInverse(A, this->getRank(A), B, binv);
+}
+
+template <class T, int algo>
+bool core::apparatus<T, algo>::getBInverse(const tFuncMatrix& A, int r, const tFuncMatrix& B, tMatrixDiscretes& binv)
+{
+	if (!this->isBInvertible(A, B, r))
+		throw algoException("(B)-Inversion: The matrix is not (B)-invertible");
+	tMatrixDiscretes discretes;
+	this->applyDiffTrans(A, discretes);
+	tMatrixDiscretes bDiscs;
+	this->applyDiffTrans(B, bDiscs);
+	return this->getBInverse(discretes, r, bDiscs, binv);
+}
+
+template <class T, int algo>
+bool core::apparatus<T, algo>::getBInverse(const tMatrixDiscretes& A, int r, const tMatrixDiscretes& B, tMatrixDiscretes& binv)
+{
+	if (!this->isBInvertible(A, B, r))
+		throw algoException("(B)-Inversion: The matrix is not (B)-invertible");
+	
+	//std::cout << "A:\n";
+	//std::copy(A.begin(), A.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
+	//std::cout << "B:\n";
+	//std::copy(B.begin(), B.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
+	//
+	// Calculate the product of A*B
+	//
+	tMatrixDiscretes AB;
+	this->multDiscretes(A, B, AB);
+	//std::cout << "AB:\n";
+	//std::copy(AB.begin(), AB.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
+	//
+	// Calculate the inverse to it
+	//
+	tMatrixDiscretes AB1;
+	this->getInverse(AB, r, AB1);
+	//std::cout << "AB1:\n";
+	//std::copy(AB1.begin(), AB1.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
+	////
+	// Calculate the (B)-inverse
+	//
+	return this->multDiscretes(B, AB1, binv);
+}
+
+template <class T, int algo>
+bool core::apparatus<T, algo>::getInverseLowerTriangular(const tFuncMatrix& A, int r, tMatrixDiscretes& inv)
+{
+	if (!this->isInvertible(A, r))
 		throw algoException("Inversion: the matrix is not invertible");
 	tMatrixDiscretes discretes;
-	this->applyDiffTrans(theMatrix, discretes);
+	this->applyDiffTrans(A, discretes);
 	return this->getInverseLowerTriangular(discretes, r, inv);
 }
 
 template <class T, int algo>
-bool core::apparatus<T, algo>::isInvertible(const tFuncMatrix& theMatrix, int r) const
+bool core::apparatus<T, algo>::isInvertible(const tFuncMatrix& A, int r) const
 {
-	if (!isSquare(theMatrix))
+	if (!isSquare(A))
 		return false;
-	if (r != theMatrix.getNumRows())
+	if (r != A.getNumRows())
 		return false;
 	return true;
 }
 
 template <class T, int algo>
-bool core::apparatus<T, algo>::isInvertible(const tMatrixDiscretes& theMatrix, int r) const
+bool core::apparatus<T, algo>::isInvertible(const tMatrixDiscretes& A, int r) const
 {
-	if (!isSquare(theMatrix))
+	if (!isSquare(A))
 		return false;
 	assert (m_di.K >= 0);
-	if (r != theMatrix[0].getNumRows())
+	if (r != A[0].getNumRows())
 		return false;
 	return true;
 }
@@ -321,16 +423,18 @@ bool core::apparatus<T, algo>::getInverseLowerTriangular(const tMatrixDiscretes&
 			}
 		}
 	}
+	//std::cout << "L1:\n";
+	//std::copy(L1.begin(), L1.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
 	return true;
 }
 
 template <class T, int algo>
-bool core::apparatus<T, algo>::getInverseUpperTriangular(const tFuncMatrix& theMatrix, int r, tMatrixDiscretes& inv)
+bool core::apparatus<T, algo>::getInverseUpperTriangular(const tFuncMatrix& A, int r, tMatrixDiscretes& inv)
 {
-	if (!this->isInvertible(theMatrix, r))
+	if (!this->isInvertible(A, r))
 		throw algoException("Inversion: the matrix is not invertible");
 	tMatrixDiscretes discretes;
-	this->applyDiffTrans(theMatrix, discretes);
+	this->applyDiffTrans(A, discretes);
 	return this->getInverseUpperTriangular(discretes, r, inv);
 }
 
@@ -358,26 +462,28 @@ bool core::apparatus<T, algo>::getInverseUpperTriangular(const tMatrixDiscretes&
 			}
 		}
 	}
+	//std::cout << "U1:\n";
+	//std::copy(U1.begin(), U1.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
 	return true;
 }
 
 template <class T, int algo>
-bool core::apparatus<T, algo>::impl_getInverse(const tMatrixDiscretes& theMatrix, int r, tMatrixDiscretes& inv, eTriangularType et)
+bool core::apparatus<T, algo>::impl_getInverse(const tMatrixDiscretes& A, int r, tMatrixDiscretes& inv, eTriangularType et)
 {
 	switch (et)
 	{
 	case eLowerTriangular:
-		return this->getInverseLowerTriangular(theMatrix, r, inv);
+		return this->getInverseLowerTriangular(A, r, inv);
 	break;
 	case eUpperTriangular:
-		return this->getInverseUpperTriangular(theMatrix, r, inv);
+		return this->getInverseUpperTriangular(A, r, inv);
 	break;
 	default:
 	break;
 	}
 	tMatrixDiscretes L;
 	tMatrixDiscretes U;
-	this->getLU(theMatrix, r, L, U);
+	this->getLU(A, r, L, U);
 	tMatrixDiscretes L1;
 	this->getInverseLowerTriangular(L, r, L1);
 	tMatrixDiscretes U1;
@@ -390,24 +496,24 @@ bool core::apparatus<T, algo>::impl_getInverse(const tMatrixDiscretes& theMatrix
 }
 
 template <class T, int algo>
-bool core::apparatus<T, algo>::getInverse(const tMatrixDiscretes& theMatrix, int r, tMatrixDiscretes& inv)
+bool core::apparatus<T, algo>::getInverse(const tMatrixDiscretes& A, int r, tMatrixDiscretes& inv)
 {
-	return this->impl_getInverse(theMatrix, r, inv, eNoneTriangular);
+	return this->impl_getInverse(A, r, inv, eNoneTriangular);
 }
 
 template <class T, int algo>
-bool core::apparatus<T, algo>::getInverse(const tFuncMatrix& theMatrix, tMatrixDiscretes& inv)
+bool core::apparatus<T, algo>::getInverse(const tFuncMatrix& A, tMatrixDiscretes& inv)
 {
-	return this->getInverse(theMatrix, getRank(theMatrix), inv);
+	return this->getInverse(A, getRank(A), inv);
 }
 
 template <class T, int algo>
-bool core::apparatus<T, algo>::getInverse(const tFuncMatrix& theMatrix, int r, tMatrixDiscretes& inv)
+bool core::apparatus<T, algo>::getInverse(const tFuncMatrix& A, int r, tMatrixDiscretes& inv)
 {
-	if (!this->isInvertible(theMatrix, r))
+	if (!this->isInvertible(A, r))
 		throw algoException("Inversion: the matrix is not invertible");
 	tMatrixDiscretes discretes;
-	this->applyDiffTrans(theMatrix, discretes);
+	this->applyDiffTrans(A, discretes);
 	return this->getInverse(discretes, r, inv);
 
 }
@@ -486,35 +592,40 @@ bool core::apparatus<T, algo>::getLU(const tMatrixDiscretes& discretes, int r, t
 			}
 		}
 	}
+
+	//std::cout << "L:\n";
+	//std::copy(L.begin(), L.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
+	//std::cout << "U:\n";
+	//std::copy(U.begin(), U.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
 	
 	return true;
 }
 
 template <class T, int algo>
-bool core::apparatus<T, algo>::getLU(const tFuncMatrix& sourceMatrix, int r, tMatrixDiscretes& L, tMatrixDiscretes& U)
+bool core::apparatus<T, algo>::getLU(const tFuncMatrix& A, int r, tMatrixDiscretes& L, tMatrixDiscretes& U)
 {
-	if (!this->isSquare(sourceMatrix))
+	if (!this->isSquare(A))
 		throw matrixException("Matrix is not square!"); 
 	tMatrixDiscretes discretes;
-	this->applyDiffTrans(sourceMatrix, discretes);
+	this->applyDiffTrans(A, discretes);
 	return this->getLU(discretes, r, L, U);
 }
 
 template <class T, int algo>
-bool core::apparatus<T, algo>::getLU(const tFuncMatrix& sourceMatrix, tMatrixDiscretes& L, tMatrixDiscretes& U)
+bool core::apparatus<T, algo>::getLU(const tFuncMatrix& A, tMatrixDiscretes& L, tMatrixDiscretes& U)
 {
-	if (!this->isSquare(sourceMatrix))
+	if (!this->isSquare(A))
 		throw matrixException("Matrix is not square!"); 
-	return this->getLU(sourceMatrix, this->getRank(sourceMatrix), L, U);
+	return this->getLU(A, this->getRank(A), L, U);
 }
 
 template <class T, int algo>
-bool core::apparatus<T, algo>::applyDiffTrans(const tFuncMatrix& sourceMatrix, tMatrixDiscretes& discs)
+bool core::apparatus<T, algo>::applyDiffTrans(const tFuncMatrix& theMatrix, tMatrixDiscretes& discs)
 {
-	const int m = sourceMatrix.getNumRows();
-	const int n = sourceMatrix.getNumCols();
+	const int m = theMatrix.getNumRows();
+	const int n = theMatrix.getNumCols();
 	discs.resize(m_di.K+1, tMatrixDiscrete(m, n, 0));
-	tFuncMatrix theMatrix = sourceMatrix;
+	tFuncMatrix A = theMatrix;
 	long long kfac = 1;
 	for (int k = 0; k <= m_di.K; ++k)
 	{
@@ -523,8 +634,8 @@ bool core::apparatus<T, algo>::applyDiffTrans(const tFuncMatrix& sourceMatrix, t
 		{
 			for (int j = 1; j <= n; ++j)
 			{
-				theMatrix[i][j] = theMatrix[i][j]->derivative(k > 0 ? 1 : 0);
-				discs[k][i][j] = std::pow(m_di.H, k)*(*theMatrix[i][j])(m_di.tv)/(T)kfac;
+				A[i][j] = A[i][j]->derivative(k > 0 ? 1 : 0);
+				discs[k][i][j] = std::pow(m_di.H, k)*(*A[i][j])(m_di.tv)/(T)kfac;
 			}
 		}
 	}
