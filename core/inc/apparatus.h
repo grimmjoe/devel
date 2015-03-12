@@ -8,8 +8,10 @@
 #include "subtract.h"
 #include "multiply.h"
 #include "matrix.h"
+#include "comparator.h"
 #include <vector>
 #include <cmath>
+#include <memory>
 
 //#include <iostream>
 //#include <algorithm>
@@ -66,12 +68,14 @@ namespace core
 
 		bool is_equal(T a, T b)
 		{
-			// TODO - This should be implemented the right way
-			return a==b;
+			return m_comparator != nullptr 
+						? m_comparator->is_equal(a, b)
+						: a == b;
 		}
 
 		apparatus(const tDiffInfo& di)
 			: m_di(di)
+			, m_comparator(nullptr)
 		{}
 
 		const tDiffInfo& getDiffInfo() const
@@ -82,6 +86,16 @@ namespace core
 		void setDiffInfo(const tDiffInfo& di)
 		{
 			m_di = di;
+		}
+
+		void setComparator(std::shared_ptr<comparator<T> > cm)
+		{
+			m_comparator = cm;
+		}
+
+		const std::shared_ptr<comparator<T> >& getComparator() const
+		{
+			return m_comparator;
 		}
 	
 		//
@@ -255,6 +269,11 @@ namespace core
 		//
 		bool isQInvertible(const tMatrixDiscretes& A, const tMatrixDiscretes& Q, int r) const;
 
+		//
+		/// Check if the A(t)Ainv(t)A(t)=A(t) condition applies or not
+		//
+		bool checkB_Q_BQ_Inverse(const tMatrixDiscretes& A, const tMatrixDiscretes& inv);
+
 	
 	//// Checks
 	public:
@@ -309,8 +328,9 @@ namespace core
 		{
 			return (k == 0 && i == j) ? 1 : 0;
 		}
-	private:
+	protected:
 		tDiffInfo m_di;
+		std::shared_ptr<comparator<T> > m_comparator;
 	};
 } // namespace core
 
@@ -319,6 +339,27 @@ int core::apparatus<T, algo>::getRank(const tFuncMatrix& A) const
 {
 	// TODO - We need to calculate the rank correctly!!!
 	return A.getNumRows();
+}
+
+template <class T, int algo>
+bool core::apparatus<T, algo>::checkB_Q_BQ_Inverse(const tMatrixDiscretes& A, const tMatrixDiscretes& inv)
+{
+	tMatrixDiscretes a_ainv;
+	this->multDiscretes(A, inv, a_ainv);
+	tMatrixDiscretes a_mult;
+	this->multDiscretes(a_ainv, A, a_mult);
+	for (int k = 0; k <= m_di.K; ++k)
+	{
+		std::cout << "k = " << k << std::endl;
+		std::cout << A[k] << std::endl;
+		std::cout << a_mult[k] << std::endl;
+		if (A[k] != a_mult[k])
+		{
+			std::cerr << "Discretes not equal at " << k << std::endl;
+			return false;
+		}
+	}
+	return true;
 }
 
 template <class T, int algo>

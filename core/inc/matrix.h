@@ -5,6 +5,9 @@
 #include <algorithm>
 #include <ostream>
 #include <iterator>
+#include <memory>
+
+#include "comparator.h"
 
 namespace core
 {
@@ -101,16 +104,29 @@ namespace core
 		tMatrix mMatrix;
 		int mNumRows;
 		int mNumCols;
+
+		std::shared_ptr<comparator<E> > m_comparator;
 	public:
 		matrix(int m, int n, const E& e = E())
 			: mNumRows(m)
 			, mNumCols(n)
+			, m_comparator(nullptr)
 		{
 			mMatrix.resize(mNumRows);
 			for (int i = 1; i <= mNumRows; ++i)
 			{
 				mMatrix[i].resize(mNumCols, e);
 			}
+		}
+
+		void setComparator(std::shared_ptr<comparator<E> > cm)
+		{
+			m_comparator = cm;
+		}
+
+		const std::shared_ptr<comparator<E> >& getComparator() const
+		{
+			return m_comparator;
 		}
 
 		int getNumRows() const
@@ -201,6 +217,35 @@ namespace core
 			}
 		}
 		return result;
+	}
+
+	template <class Elem>
+	bool operator==(const matrix<Elem>& mat1, const matrix<Elem>& mat2)
+	{
+		int m1 = mat1.getNumRows();
+		int n1 = mat1.getNumCols();
+		int m2 = mat2.getNumRows();
+		int n2 = mat2.getNumCols();
+		if (m1 != m2 || n1 != n2)
+			return false;
+		std::shared_ptr<comparator<Elem> > theComp = mat1.getComparator();
+		for (int i = 1; i <= m1; ++i)
+		{
+			for (int j = 1; j <= n1; ++j)
+			{
+				if ((theComp != nullptr 
+						? !theComp->is_equal(mat1[i][j], mat2[i][j])
+						: mat1[i][j] != mat2[i][j]))
+					return false;
+			}
+		}
+		return true;
+	}
+
+	template <class Elem>
+	bool operator!=(const matrix<Elem>& mat1, const matrix<Elem>& mat2)
+	{
+		return ! (mat1 == mat2);
 	}
 
 } // namespace core

@@ -72,7 +72,11 @@ int main(int argc, char* argv[])
 	tDiffInfo di(tv, 1, k);
 	tApp app(di);
 	tDiscretes theDiscretes;
-	app.getBInverse(theMatrix, m, B, theDiscretes);
+	tDiscretes theMatrixDiscretes;
+	app.applyDiffTrans(theMatrix, theMatrixDiscretes);
+	tDiscretes theB;
+	app.applyDiffTrans(B, theB);
+	app.getBInverse(theMatrixDiscretes, m, theB, theDiscretes);
 	std::cout << "\nDiscretes:\n";
 	std::copy(theDiscretes.begin(), theDiscretes.end(), std::ostream_iterator<tDiscrete>(std::cout, "\n"));
 	std::cout << "\nRestoring the original\n";
@@ -80,6 +84,11 @@ int main(int argc, char* argv[])
 	app.restoreTaylorSingle(theDiscretes, origMatrix);
 	std::cout << "The original:\n";
 	printFuncMatrix(origMatrix);
+
+	if (app.checkB_Q_BQ_Inverse(theMatrixDiscretes, theDiscretes))
+		std::cout << "The calculation is correct" << std::endl;
+	else
+		std::cout << "The calculation is NOT CORRECT" << std::endl;
 
 	return 0;
 }
