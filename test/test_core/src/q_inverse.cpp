@@ -85,7 +85,7 @@ int main(int argc, char* argv[])
 	std::cout << "The original:\n";
 	printFuncMatrix(origMatrix);
 
-	if (app.checkB_Q_BQ_Inverse(theMatrixDiscretes, theDiscretes))
+	if (app.checkB_Q_BQ_Inverse(theMatrixDiscretes, theDiscretes, di.K>0? di.K-1:0))
 		std::cout << "The calculation is correct" << std::endl;
 	else
 		std::cout << "The calculation is NOT CORRECT" << std::endl;
