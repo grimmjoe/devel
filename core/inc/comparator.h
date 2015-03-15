@@ -14,7 +14,7 @@ namespace core
 			: m_threshold(t)
 		{}
 
-		virtual bool is_equal(T a, T b) const
+		bool is_equal(T a, T b) const
 		{
 			return std::fabs(a-b) <= m_threshold;
 		}

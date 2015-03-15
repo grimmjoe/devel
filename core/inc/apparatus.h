@@ -71,7 +71,7 @@ namespace core
 	
 		typedef diffInfo tDiffInfo;
 
-		bool is_equal(T a, T b)
+		bool is_equal(T a, T b) const
 		{
 			return m_comparator != nullptr 
 						? m_comparator->is_equal(a, b)
@@ -106,7 +106,7 @@ namespace core
 		//
 		/// Apply the Taylor-diff transformation @a m_di on the @a A into the discretes @a discs
 		//
-		bool applyDiffTrans(const tFuncMatrix& A, tMatrixDiscretes& discs);
+		bool applyDiffTrans(const tFuncMatrix& A, tMatrixDiscretes& discs) const;
 
 		//
 		/// Add 2 discretes
@@ -147,7 +147,7 @@ namespace core
 		//
 		/// Get the rank of the matrix
 		//
-		int getRank(const tFuncMatrix& A);
+		int getRank(const tFuncMatrix& A) const;
 	
 	//// Inverses
 	public:
@@ -274,7 +274,16 @@ namespace core
 		//
 		bool isQInvertible(const tMatrixDiscretes& A, const tMatrixDiscretes& Q, int r) const;
 
-		//// TODO (B, Q)-inverses are not implemented yet
+		//
+		/// Choose the matrix Q so that QA is invertible
+		//
+		bool chooseQ(const tMatrixDiscretes& A, int r, const tMatrixDiscretes& Q);
+
+		//
+		/// Get the (BQ)-inverse
+		//
+		bool getBQInverse(const tFuncMatrix& A, tMatrixDiscretes& binv);
+
 		//
 		/// Get the (BQ)-inverse
 		//
@@ -293,12 +302,17 @@ namespace core
 		//
 		/// Check if the matrx is (BQ)-invertible
 		//
-		bool isBQInvertible(const tFuncMatrix& A, const tFuncMatrix& S, int r) const;
+		bool isBQInvertible(const tFuncMatrix& A) const;
 
 		//
 		/// Check if the matrx is (BQ)-invertible
 		//
-		bool isBQInvertible(const tMatrixDiscretes& A, const tMatrixDiscretes& S, int r) const;
+		bool isBQInvertible(const tFuncMatrix& A, int r) const;
+
+		//
+		/// Check if the matrx is (BQ)-invertible
+		//
+		bool isBQInvertible(const tMatrixDiscretes& A, int r) const;
 		//
 		/// Check if the A(t)Ainv(t)A(t)=A(t) condition applies or not for the first @a K discretes
 		//
@@ -383,9 +397,9 @@ namespace core
 			return (k == 0 && i == j) ? 1 : 0;
 		}
 
-		int impl_getRank(const tMatrixDiscretes& A, tMatrixDiscrete& permMatrix);
+		int impl_getRank(const tMatrixDiscretes& A, tMatrixDiscretes& permMatrix) const;
 
-		T getScalarProduct(const tMatrixDiscreteColumn& c1, const tMatrixDiscreteColumn& c2)
+		T getScalarProduct(const tMatrixDiscreteColumn& c1, const tMatrixDiscreteColumn& c2) const
 		{
 			assert (c1.getNumRows() == c2.getNumRows());
 			T sum = 0;
@@ -395,7 +409,7 @@ namespace core
 			}
 			return sum;
 		}
-		T getNormNonSqrt(const tMatrixDiscreteColumn& c)
+		T getNormNonSqrt(const tMatrixDiscreteColumn& c) const
 		{
 			T sum = 0;
 			for (int i = 1; i <= c.getNumRows(); ++i)
@@ -404,7 +418,7 @@ namespace core
 			}
 			return sum;
 		}
-		T getNorm(const tMatrixDiscreteColumn& c)
+		T getNorm(const tMatrixDiscreteColumn& c) const
 		{
 			std::sqrt(this->getNormNonSqrt(c));
 		}
@@ -415,21 +429,21 @@ namespace core
 } // namespace core
 
 template <class T, int algo>
-int core::apparatus<T, algo>::getRank(const tFuncMatrix& A)
+int core::apparatus<T, algo>::getRank(const tFuncMatrix& A) const
 {
 	// TODO - We need to calculate the rank correctly!!!
 	tMatrixDiscretes discretes;
 	this->applyDiffTrans(A, discretes);
-	tMatrixDiscrete pm(A.getNumCols(), A.getNumCols(), 0);
+	tMatrixDiscretes pm;
 	return this->impl_getRank(discretes, pm);
 }
 
 template <class T, int algo>
-int core::apparatus<T, algo>::impl_getRank(const tMatrixDiscretes& A, tMatrixDiscrete& permMatrix)
+int core::apparatus<T, algo>::impl_getRank(const tMatrixDiscretes& A, tMatrixDiscretes& permMatrix) const
 {
 	assert (m_di.K >= 0);
-	int m = A[0].getNumRows();
-	int n = A[0].getNumCols();
+	const int m = A[0].getNumRows();
+	const int n = A[0].getNumCols();
 	typedef std::pair<tMatrixDiscreteColumn, T> tVecNormPair;
 	typename tMatrixDiscrete::template numVector<tVecNormPair> d;
 	d.reserve(n);
@@ -457,17 +471,13 @@ int core::apparatus<T, algo>::impl_getRank(const tMatrixDiscretes& A, tMatrixDis
 	}
 	std::vector<int> theIndices(n, 0);
 	int r = 0;
+	int nn = n;
 	for (int i = 1; i <= d.size(); ++i)
 	{
 		if (!is_equal(d[i].second, 0))
-		{
-			theIndices[r] = i;
-			++r;
-		}
+			theIndices[r++] = i;
 		else
-		{
-			theIndices[--n] = i;
-		}
+			theIndices[--nn] = i;
 	}
 	std::cout << "Orthogonalization was:\n";
 	for (int i = 1; i <= d.size(); ++i)
@@ -477,22 +487,94 @@ int core::apparatus<T, algo>::impl_getRank(const tMatrixDiscretes& A, tMatrixDis
 	}
 	assert (r <= std::min(m, n));
 	//permMatrix.resize(n, n, 0);
-	int i = 1;
-	std::for_each(theIndices.begin(), theIndices.end(), 
-		[&](int ind)
-		{
-			std::cout << "ind = " << ind << std::endl;
-			permMatrix[ind][i++]=1;
-		}
-		);
+	permMatrix.resize(1, tMatrixDiscrete(n, r, 0));
+	for (int i = 1; i <= r; ++i)
+	{
+		permMatrix[0][theIndices[i-1]][i]=1;
+	}
+	//int i = 1;
+	//std::for_each(theIndices.begin(), theIndices.end(), 
+	//	[&](int ind)
+	//	{
+	//		std::cout << "ind = " << ind << std::endl;
+	//		permMatrix[ind][i++]=1;
+	//	}
+	//	);
 	
 	std::cout << "The rank is " << r << std::endl;
 	std::cout << "The indices:\n";
 	std::copy(theIndices.begin(), theIndices.end(), std::ostream_iterator<int>(std::cout, " "));
 	std::cout << "The permutation matrix is:\n";
-	std::cout << permMatrix << std::endl;
+	std::cout << permMatrix[0] << std::endl;
 
 	return r;
+}
+
+
+template <class T, int algo>
+bool core::apparatus<T, algo>::isBQInvertible(const tFuncMatrix& A) const
+{
+	int r = this->getRank(A);
+	return r < std::min(A.getNumRows(), A.getNumCols());
+}
+
+template <class T, int algo>
+bool core::apparatus<T, algo>::isBQInvertible(const tFuncMatrix& A, int r) const
+{
+	return r < std::min(A.getNumRows(), A.getNumCols());
+}
+
+
+template <class T, int algo>
+bool core::apparatus<T, algo>::isBQInvertible(const tMatrixDiscretes& A, int r) const
+{
+	assert (m_di.K >= 0);
+	return r < std::min(A[0].getNumRows(), A[0].getNumCols());
+}
+
+template <class T, int algo>
+bool core::apparatus<T, algo>::getBQInverse(const tFuncMatrix& A, tMatrixDiscretes& binv)
+{
+	tMatrixDiscretes discretes;
+	this->applyDiffTrans(A, discretes);
+	tMatrixDiscretes permMatrix;
+	int r = this->impl_getRank(discretes, permMatrix);
+	if (!this->isBQInvertible(A, r))
+		throw algoException("(Q)-Inversion: The matrix is not (B, Q)-invertible");
+	tMatrixDiscretes sdiscs;
+	sdiscs.reserve(discretes.size());
+	std::for_each(discretes.begin(), discretes.end(), 
+		[&](const tMatrixDiscrete& d)
+		{
+			sdiscs.push_back(d*permMatrix[0]);
+		}
+		);
+	return this->getBQInverse(discretes, r, sdiscs, binv);
+}
+
+template <class T, int algo>
+bool core::apparatus<T, algo>::getBQInverse(const tFuncMatrix& A, int r, const tFuncMatrix& S, tMatrixDiscretes& binv)
+{
+	if (!this->isBQInvertible(A, r))
+		throw algoException("(Q)-Inversion: The matrix is not (B, Q)-invertible");
+	tMatrixDiscretes discretes;
+	this->applyDiffTrans(A, discretes);
+	tMatrixDiscretes sdiscs;
+	this->applyDiffTrans(S, sdiscs);
+	return this->getBQInverse(discretes, r, sdiscs, binv);
+}
+
+template <class T, int algo>
+bool core::apparatus<T, algo>::getBQInverse(const tMatrixDiscretes& A, int r, const tMatrixDiscretes& S, tMatrixDiscretes& binv)
+{
+	if (!this->isBQInvertible(A, r))
+		throw algoException("(Q)-Inversion: The matrix is not (B, Q)-invertible");
+
+	tMatrixDiscretes Q;
+	this->chooseQ(S, r, Q);
+	tMatrixDiscretes qinv;
+	this->getQInverse(S, r, Q, qinv);
+
 }
 
 template <class T, int algo>
@@ -581,6 +663,16 @@ bool core::apparatus<T, algo>::getBInverse(const tMatrixDiscretes& A, int r, con
 	// Calculate the (B)-inverse
 	//
 	return this->multDiscretes(B, AB1, binv);
+}
+
+template <class T, int algo>
+bool core::apparatus<T, algo>::chooseQ(const tMatrixDiscretes& A, int r, const tMatrixDiscretes& Q)
+{
+	assert (m_di.K >= 0);
+	Q.resize(m_di.K+1, tMatrixDiscrete(A[0].getNumCols, A[0].getNumRows(), 0));
+	// Transpose the martix. Apply Gramm-Schmidt. Get the permutation matrix
+	// Transpose the permutation matrix and multiply with the original to get
+	// a row permutation such that the resulted matrix is invertible
 }
 
 template <class T, int algo>
@@ -907,9 +999,9 @@ bool core::apparatus<T, algo>::getLU(const tFuncMatrix& A, tMatrixDiscretes& L, 
 }
 
 template <class T, int algo>
-bool core::apparatus<T, algo>::applyDiffTrans(const tFuncMatrix& theMatrix, tMatrixDiscretes& discs)
+bool core::apparatus<T, algo>::applyDiffTrans(const tFuncMatrix& theMatrix, tMatrixDiscretes& discs) const
 {
-	const int m = theMatrix.getNumRows();
+	const int m = theMatrix.getNumRows(); 
 	const int n = theMatrix.getNumCols();
 	discs.resize(m_di.K+1, tMatrixDiscrete(m, n, 0));
 	tFuncMatrix A = theMatrix;
