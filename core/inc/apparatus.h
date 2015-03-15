@@ -49,8 +49,13 @@ namespace core
 		typedef typename function<T>::tFunction tFunction;
 		typedef typename function<T>::tFunctionPtr tFunctionPtr;
 		typedef core::matrix<tFunctionPtr> tFuncMatrix;
+		typedef typename tFuncMatrix::tMatrixRow tFuncMatrixRow;
+		typedef typename tFuncMatrix::tMatrixColumn tFuncMatrixColumn;
 		typedef core::matrix<T> tMatrixDiscrete;
+		typedef typename tMatrixDiscrete::tMatrixRow tMatrixDiscreteRow;
+		typedef typename tMatrixDiscrete::tMatrixColumn tMatrixDiscreteColumn;
 		typedef std::vector<tMatrixDiscrete> tMatrixDiscretes;
+
 	
 		struct diffInfo
 		{
@@ -142,7 +147,7 @@ namespace core
 		//
 		/// Get the rank of the matrix
 		//
-		int getRank(const tFuncMatrix& A) const;
+		int getRank(const tFuncMatrix& A);
 	
 	//// Inverses
 	public:
@@ -377,6 +382,32 @@ namespace core
 		{
 			return (k == 0 && i == j) ? 1 : 0;
 		}
+
+		int impl_getRank(const tMatrixDiscretes& A, tMatrixDiscrete& permMatrix);
+
+		T getScalarProduct(const tMatrixDiscreteColumn& c1, const tMatrixDiscreteColumn& c2)
+		{
+			assert (c1.getNumRows() == c2.getNumRows());
+			T sum = 0;
+			for (int i = 1; i <= c1.getNumRows(); ++i)
+			{
+				sum += c1[i][1]*c2[i][1];
+			}
+			return sum;
+		}
+		T getNormNonSqrt(const tMatrixDiscreteColumn& c)
+		{
+			T sum = 0;
+			for (int i = 1; i <= c.getNumRows(); ++i)
+			{
+				sum += c[i][1]*c[i][1];
+			}
+			return sum;
+		}
+		T getNorm(const tMatrixDiscreteColumn& c)
+		{
+			std::sqrt(this->getNormNonSqrt(c));
+		}
 	protected:
 		tDiffInfo m_di;
 		std::shared_ptr<comparator<T> > m_comparator;
@@ -384,10 +415,84 @@ namespace core
 } // namespace core
 
 template <class T, int algo>
-int core::apparatus<T, algo>::getRank(const tFuncMatrix& A) const
+int core::apparatus<T, algo>::getRank(const tFuncMatrix& A)
 {
 	// TODO - We need to calculate the rank correctly!!!
-	return A.getNumRows();
+	tMatrixDiscretes discretes;
+	this->applyDiffTrans(A, discretes);
+	tMatrixDiscrete pm(A.getNumCols(), A.getNumCols(), 0);
+	return this->impl_getRank(discretes, pm);
+}
+
+template <class T, int algo>
+int core::apparatus<T, algo>::impl_getRank(const tMatrixDiscretes& A, tMatrixDiscrete& permMatrix)
+{
+	assert (m_di.K >= 0);
+	int m = A[0].getNumRows();
+	int n = A[0].getNumCols();
+	typedef std::pair<tMatrixDiscreteColumn, T> tVecNormPair;
+	typename tMatrixDiscrete::template numVector<tVecNormPair> d;
+	d.reserve(n);
+	d.push_back(std::make_pair(A[0].getColumn(1), 0));
+	d[1].second = this->getNormNonSqrt(d[1].first);
+	for (int j = 2; j <= n; ++j)
+	{
+		tMatrixDiscreteColumn aj = A[0].getColumn(j);
+		d.push_back(std::make_pair(aj, 0));
+		for (int i = 1; i < j; ++ i)
+		{
+			if (d[i].second == 0)
+				continue;
+			T scalar = this->getScalarProduct(aj, d[i].first);
+			if (scalar == 0)
+				continue;
+			d[j].first -= (scalar/d[i].second)*d[i].first;
+		}
+		d[j].second = this->getNormNonSqrt(d[j].first);
+		if (this->is_equal(d[j].second, 0))
+		{
+			d[j].second = 0;
+			d[j].first.set(0);
+		}
+	}
+	std::vector<int> theIndices(n, 0);
+	int r = 0;
+	for (int i = 1; i <= d.size(); ++i)
+	{
+		if (!is_equal(d[i].second, 0))
+		{
+			theIndices[r] = i;
+			++r;
+		}
+		else
+		{
+			theIndices[--n] = i;
+		}
+	}
+	std::cout << "Orthogonalization was:\n";
+	for (int i = 1; i <= d.size(); ++i)
+	{
+		std::cout << i << ":\n" << d[i].first << std::endl;
+		std::cout << d[i].second << std::endl;
+	}
+	assert (r <= std::min(m, n));
+	//permMatrix.resize(n, n, 0);
+	int i = 1;
+	std::for_each(theIndices.begin(), theIndices.end(), 
+		[&](int ind)
+		{
+			std::cout << "ind = " << ind << std::endl;
+			permMatrix[ind][i++]=1;
+		}
+		);
+	
+	std::cout << "The rank is " << r << std::endl;
+	std::cout << "The indices:\n";
+	std::copy(theIndices.begin(), theIndices.end(), std::ostream_iterator<int>(std::cout, " "));
+	std::cout << "The permutation matrix is:\n";
+	std::cout << permMatrix << std::endl;
+
+	return r;
 }
 
 template <class T, int algo>

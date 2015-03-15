@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <ostream>
 #include <iterator>
+#include <cassert>
 #include <memory>
 
 #include "comparator.h"
@@ -119,6 +120,38 @@ namespace core
 			}
 		}
 
+		matrix(const tRow& r)
+			: mNumRows(1)
+			, mNumCols(r.size())
+			, m_comparator(nullptr)
+		{
+			mMatrix.resize(mNumRows);
+			mMatrix[1].reserve(mNumCols);
+			std::copy(r.begin(), r.end(), std::back_inserter(mMatrix[1]));
+		}
+
+		typedef matrix<E> tMatrixRow;
+		typedef matrix<E> tMatrixColumn;
+
+		tMatrixRow getRow(int i) const
+		{
+			return tMatrixRow(mMatrix[i]);
+		}
+
+		tMatrixColumn getColumn(int j) const
+		{
+			assert (j >= 1 && j <= mNumCols);
+			tMatrixColumn mc(mNumRows, 1);
+			int i = 1;
+			std::for_each(mMatrix.begin(), mMatrix.end(),
+				[&](const tRow& r)
+				{
+					mc[i++][1]=r[j];
+				}
+				);
+			return mc;
+		}
+
 		void setComparator(std::shared_ptr<comparator<E> > cm)
 		{
 			m_comparator = cm;
@@ -137,6 +170,13 @@ namespace core
 		int getNumCols() const
 		{
 			return mNumCols;
+		}
+
+		void set(const E& e)
+		{
+			for (int i = 1; i <= this->getNumRows(); ++i)
+				for (int j = 1; j <= this->getNumCols(); ++j)
+					mMatrix[i][j] = e;
 		}
 
 		tRow& operator[](int i)
@@ -182,6 +222,17 @@ namespace core
 			return *this;
 		}
 
+		matrix<E>& operator -=(const matrix<E>& mat)
+		{
+			if (mat.getNumRows() != this->getNumRows() ||
+				mat.getNumCols() != this->getNumCols())
+				throw matrixException("Matrices are of insubtractible boundaries");
+			for (int i = 1; i <= this->getNumRows(); ++i)
+				for (int j = 1; j <= this->getNumCols(); ++j)
+					(*this)[i][j] -= mat[i][j];
+			return *this;
+		}
+
 		matrix<E>& operator=(const matrix<E>& mat)
 		{
 			if (mat.getNumRows() != this->getNumRows() ||
@@ -214,6 +265,39 @@ namespace core
 					sum += mat1[i][k]*mat2[k][j];
 				}
 				result[i][j] = sum;
+			}
+		}
+		return result;
+	}
+
+	template <class Elem>
+	matrix<Elem> operator*(const matrix<Elem>& mat1, const Elem& e)
+	{
+		const int m = mat1.getNumRows();
+		const int n = mat1.getNumCols();
+		matrix<Elem> result(m, n, 0);
+		for (int i = 1; i <= m; ++i)
+		{
+			for (int j = 1; j <= n; ++j)
+			{
+				result[i][j] = mat1[i][j]*e;
+			}
+		}
+		return result;
+	}
+
+
+	template <class Elem>
+	matrix<Elem> operator*(const Elem& e, const matrix<Elem>& mat1)
+	{
+		const int m = mat1.getNumRows();
+		const int n = mat1.getNumCols();
+		matrix<Elem> result(m, n, 0);
+		for (int i = 1; i <= m; ++i)
+		{
+			for (int j = 1; j <= n; ++j)
+			{
+				result[i][j] = mat1[i][j]*e;
 			}
 		}
 		return result;

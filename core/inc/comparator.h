@@ -1,6 +1,8 @@
 #ifndef _COMPARATOR_H__
 #define _COMPARATOR_H__
 
+#include <cmath>
+
 namespace core
 {
 	template <class T>
@@ -12,10 +14,9 @@ namespace core
 			: m_threshold(t)
 		{}
 
-		bool is_equal(T a, T b) const
+		virtual bool is_equal(T a, T b) const
 		{
-			// TODO - This should be implemented the right way
-			return a == b;
+			return std::fabs(a-b) <= m_threshold;
 		}
 	};
 } // namespace core
