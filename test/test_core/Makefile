@@ -20,11 +20,14 @@ OBJ_FILES4=$(CPP_FILES4:.cpp=.o)
 CPP_FILES5=src/q_inverse.cpp
 OBJ_FILES5=$(CPP_FILES5:.cpp=.o)
 
+CPP_FILES6=src/rank.cpp
+OBJ_FILES6=$(CPP_FILES6:.cpp=.o)
+
 CPP_FILES7=src/bq_inverse.cpp
 OBJ_FILES7=$(CPP_FILES7:.cpp=.o)
 
-CPP_FILES6=src/rank.cpp
-OBJ_FILES6=$(CPP_FILES6:.cpp=.o)
+CPP_FILES8=src/drazin_recursive.cpp
+OBJ_FILES8=$(CPP_FILES8:.cpp=.o)
 
 EXE:= bin/matrix_inverse
 EXE2:=bin/expr_parser
@@ -33,8 +36,9 @@ EXE4:=bin/b_inverse
 EXE5:=bin/q_inverse
 EXE6:=bin/rank
 EXE7:=bin/bq_inverse
+EXE8:=bin/drazin_recursive
 
-default: $(EXE) $(EXE2) $(EXE3) $(EXE4) $(EXE5) $(EXE6) $(EXE7)
+default: $(EXE) $(EXE2) $(EXE3) $(EXE4) $(EXE5) $(EXE6) $(EXE7) $(EXE8)
 
 .PHONY: directories
 
@@ -58,6 +62,9 @@ $(EXE6): directories $(OBJ_FILES6)
 
 $(EXE7): directories $(OBJ_FILES7)
 	$(CXX) $(LD_FLAGS)  -o $@ $(OBJ_FILES7)
+
+$(EXE8): directories $(OBJ_FILES8)
+	$(CXX) $(LD_FLAGS)  -o $@ $(OBJ_FILES8)
 
 .cpp.o:
 	$(CXX) $(CXXFLAGS) $(INCLUDE) -c $< -o $@
@@ -84,3 +91,4 @@ clean:
 -include $(OBJ_FILES5:.o=.d)
 -include $(OBJ_FILES6:.o=.d)
 -include $(OBJ_FILES7:.o=.d)
+-include $(OBJ_FILES8:.o=.d)

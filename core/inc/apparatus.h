@@ -78,6 +78,17 @@ namespace core
 						: a == b;
 		}
 
+		bool is_equal(const tMatrixDiscrete& a, T b) const
+		{
+			const int m = a.getNumRows();
+			const int n = a.getNumCols();
+			for (int i = 1; i <= m; ++i)
+				for (int j = 1; j <= n; ++j)
+					if (!this->is_equal(a[i][j], b))
+						return false;
+			return true;
+		}
+
 		apparatus(const tDiffInfo& di)
 			: m_di(di)
 			, m_comparator(nullptr)
@@ -338,9 +349,36 @@ namespace core
 	/// Drazin inverse
 	public:
 		//
+		/// Has the matrix a Drazin inverse or not
+		//
+		bool isDrazinInvertible(const tFuncMatrix& A) const;
+
+		//
+		/// Check if the Ad(t)A(t)Ad(t)=Ad(t0 and A(t)Ad(t)=Ad(t)A(t)
+		//
+		bool checkDrazinInverse(const tMatrixDiscretes& A, const tMatrixDiscretes& inv)
+		{
+			return this->checkDrazinInverse(A, inv, m_di.K);
+		}
+		//
+		/// Check if the Ad(t)A(t)Ad(t)=Ad(t0 and A(t)Ad(t)=Ad(t)A(t)
+		//
+		bool checkDrazinInverse(const tMatrixDiscretes& A, const tMatrixDiscretes& inv, int K);
+
+		//
+		/// Has the matrix a Drazin inverse or not
+		//
+		bool isDrazinInvertible(const tMatrixDiscretes& A) const;
+
+		//
 		/// Get the Drazin inverse
 		//
 		bool getDrazinInverseRecursive(const tFuncMatrix& A, tMatrixDiscretes& dinv);
+
+		//
+		/// Get the Drazin inverse
+		//
+		bool getDrazinInverseRecursive(const tMatrixDiscretes& A, tMatrixDiscretes& dinv);
 
 		//
 		/// Get the Drazin inverse
@@ -433,6 +471,14 @@ namespace core
 		{
 			std::sqrt(this->getNormNonSqrt(c));
 		}
+
+		void makeIdentity(tMatrixDiscrete& d)
+		{
+			int m = std::min(d.getNumRows(), d.getNumCols());
+			for (int i = 1; i <= m; ++i)
+				d[i][i] = 1;
+		}
+
 	protected:
 		tDiffInfo m_di;
 		std::shared_ptr<comparator<T> > m_comparator;
@@ -527,6 +573,99 @@ int core::apparatus<T, algo>::impl_getRank(const tMatrixDiscrete& A, tMatrixDisc
 	return r;
 }
 
+template <class T, int algo>
+bool core::apparatus<T, algo>::isDrazinInvertible(const tFuncMatrix& A) const
+{
+	return this->isSquare(A);
+}
+
+template <class T, int algo>
+bool core::apparatus<T, algo>::isDrazinInvertible(const tMatrixDiscretes& A) const
+{
+	return this->isSquare(A);
+}
+
+
+template <class T, int algo>
+bool core::apparatus<T, algo>::getDrazinInverseRecursive(const tFuncMatrix& A, tMatrixDiscretes& dinv)
+{
+	if (!this->isDrazinInvertible(A))
+		throw algoException("Drazin Inversion: the matrix is not Drazin-invertible");
+	tMatrixDiscretes discretes;
+	this->applyDiffTrans(A, discretes);
+	return this->getDrazinInverseRecursive(discretes, dinv);
+}
+
+template <class T, int algo>
+bool core::apparatus<T, algo>::getDrazinInverseRecursive(const tMatrixDiscretes& A, tMatrixDiscretes& dinv)
+{
+	if (!this->isDrazinInvertible(A))
+		throw algoException("Drazin Inversion: the matrix is not Drazin-invertible");
+	std::cout << "Here\n";
+	assert (m_di.K >= 0);
+	const int n = A[0].getNumRows();
+	std::vector<tMatrixDiscretes> S(n+1, tMatrixDiscretes());
+	S[0].resize(m_di.K+1, tMatrixDiscrete(n, n, 0));
+	this->makeIdentity(S[0][0]);
+	int j = 1;
+	int p = 0;
+	bool toStop = j > n;
+	typedef std::vector<T> tScalarDiscretes;
+	std::vector<tScalarDiscretes> betta(n, tScalarDiscretes(m_di.K+1, 0));
+	tMatrixDiscrete I(n, n, 0);
+	this->makeIdentity(I);
+	std::cout << "Entering the loop\n";
+	while (!toStop)
+	{
+		p = 0;
+		tMatrixDiscretes AS;
+		this->multDiscretes(A, S[j-1], AS);
+		std::cout << "AS:\n";
+		std::copy(AS.begin(), AS.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, " "));
+		for (int k = 0; k <= m_di.K; ++k)
+		{
+			betta[n-j][k] = (-1./j) * trace(AS[k]);
+			if (this->is_equal(betta[n-j][k], 0))
+				betta[n-j][k] = 0;
+		}
+		std::cout << "Calculated bettas, now calculating S\n";
+		std::cout << "betta[" << n-j << "]:\n";
+		std::copy(betta[n-j].begin(), betta[n-j].end(), std::ostream_iterator<T>(std::cout, " "));
+		this->multDiscretes(A, S[j-1], S[j]);
+		for (int k = 0; k <= m_di.K; ++k)
+		{
+			if (!this->is_equal(betta[n-j][k], 0))
+				S[j][k] += betta[n-j][k]*I;
+			std::cout << "Was not null, checking the matrix\n";
+			if (!this->is_equal(S[j][k], 0))
+				p = -1;
+		}
+		std::cout << "Calculated S\n";
+		std::cout << "p = " << p << std::endl;
+		if (p != -1)
+		{
+			p = j;
+			break;
+		}
+		++j;
+		toStop = j > n;
+	}
+	std::cout << "p = " << p << std::endl;
+	std::cout << "betta:\n";
+	for (int i = 0; i < n; ++i)
+	{
+		std::cout << "betta[" << i << "]:\n";
+		std::copy(betta[i].begin(), betta[i].end(), std::ostream_iterator<T>(std::cout, " "));
+		std::cout << std::endl;
+		std::cout << "S[" << i << "]:\n";
+		std::copy(S[i].begin(), S[i].end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, " "));
+		std::cout << std::endl;
+	}
+		std::cout << "S[" << n << "]:\n";
+		std::copy(S[n].begin(), S[n].end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, " "));
+		std::cout << std::endl;
+	return true;
+}
 
 template <class T, int algo>
 bool core::apparatus<T, algo>::isBQInvertible(const tFuncMatrix& A) const
@@ -636,6 +775,43 @@ bool core::apparatus<T, algo>::checkB_Q_BQ_Inverse(const tMatrixDiscretes& A, co
 	}
 	return true;
 }
+
+template <class T, int algo>
+bool core::apparatus<T, algo>::checkDrazinInverse(const tMatrixDiscretes& A, const tMatrixDiscretes& inv, int K)
+{
+	// First
+	tMatrixDiscretes ainv_a;
+	this->multDiscretes(inv, A, ainv_a);
+	tMatrixDiscretes a_mult;
+	this->multDiscretes(ainv_a, inv, a_mult);
+	for (int k = 0; k <= K; ++k)
+	{
+		std::cout << "k = " << k << std::endl;
+		std::cout << inv[k] << std::endl;
+		std::cout << a_mult[k] << std::endl;
+		if (inv[k] != a_mult[k])
+		{
+			std::cerr << "Discretes not equal at " << k << std::endl;
+			return false;
+		}
+	}
+	// Second
+	tMatrixDiscretes a_ainv;
+	this->multDiscretes(A, inv, a_ainv);
+	for (int k = 0; k <= K; ++k)
+	{
+		std::cout << "k = " << k << std::endl;
+		std::cout << a_ainv[k] << std::endl;
+		std::cout << ainv_a[k] << std::endl;
+		if (a_ainv[k] != ainv_a[k])
+		{
+			std::cerr << "Discretes not equal at " << k << std::endl;
+			return false;
+		}
+	}
+	return true;
+}
+
 
 template <class T, int algo>
 bool core::apparatus<T, algo>::isBInvertible(const tFuncMatrix& A, const tFuncMatrix& B, int r) const

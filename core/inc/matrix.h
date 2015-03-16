@@ -351,6 +351,17 @@ namespace core
 		return ! (mat1 == mat2);
 	}
 
+	template <class Elem>
+	Elem trace(const matrix<Elem>& m)
+	{
+		if (m.getNumRows() != m.getNumCols())
+			throw matrixException("Matrix is not square!"); 
+		Elem sum = Elem(0);
+		for (int i = 1; i <= m.getNumRows(); ++i)
+			sum += m[i][i];
+		return sum;
+	}
+
 } // namespace core
 
 #endif // MATRIX_H__
