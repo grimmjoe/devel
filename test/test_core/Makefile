@@ -20,6 +20,9 @@ OBJ_FILES4=$(CPP_FILES4:.cpp=.o)
 CPP_FILES5=src/q_inverse.cpp
 OBJ_FILES5=$(CPP_FILES5:.cpp=.o)
 
+CPP_FILES7=src/bq_inverse.cpp
+OBJ_FILES7=$(CPP_FILES7:.cpp=.o)
+
 CPP_FILES6=src/rank.cpp
 OBJ_FILES6=$(CPP_FILES6:.cpp=.o)
 
@@ -29,8 +32,9 @@ EXE3:=bin/deriv_matrix
 EXE4:=bin/b_inverse
 EXE5:=bin/q_inverse
 EXE6:=bin/rank
+EXE7:=bin/bq_inverse
 
-default: $(EXE) $(EXE2) $(EXE3) $(EXE4) $(EXE5) $(EXE6)
+default: $(EXE) $(EXE2) $(EXE3) $(EXE4) $(EXE5) $(EXE6) $(EXE7)
 
 .PHONY: directories
 
@@ -51,6 +55,9 @@ $(EXE5): directories $(OBJ_FILES5)
 
 $(EXE6): directories $(OBJ_FILES6)
 	$(CXX) $(LD_FLAGS)  -o $@ $(OBJ_FILES6)
+
+$(EXE7): directories $(OBJ_FILES7)
+	$(CXX) $(LD_FLAGS)  -o $@ $(OBJ_FILES7)
 
 .cpp.o:
 	$(CXX) $(CXXFLAGS) $(INCLUDE) -c $< -o $@
@@ -76,3 +83,4 @@ clean:
 -include $(OBJ_FILES4:.o=.d)
 -include $(OBJ_FILES5:.o=.d)
 -include $(OBJ_FILES6:.o=.d)
+-include $(OBJ_FILES7:.o=.d)

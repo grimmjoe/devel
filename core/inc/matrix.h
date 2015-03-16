@@ -172,11 +172,30 @@ namespace core
 			return mNumCols;
 		}
 
+		//
+		/// Get the transpose of the matrix
+		//
+		/*!
+		 TODO - This is not efficient at all.
+		 I can get use of the old matrix by wrapping it up and redirecting
+		 i,j -> j,i
+		 numRows->numCols
+		 numCols->numRows
+		*/
+		matrix<E> getTranspose() const
+		{
+			matrix<E> m(this->getNumCols(), this->getNumRows());
+			for (int i = 1; i <= this->getNumRows(); ++i)
+				for (int j = 1; j <= this->getNumCols(); ++j)
+					m[j][i]=(*this)[i][j];
+			return m;
+		}
+
 		void set(const E& e)
 		{
 			for (int i = 1; i <= this->getNumRows(); ++i)
 				for (int j = 1; j <= this->getNumCols(); ++j)
-					mMatrix[i][j] = e;
+					(*this)[i][j] = e;
 		}
 
 		tRow& operator[](int i)

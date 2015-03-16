@@ -250,6 +250,11 @@ namespace core
 		bool isBInvertible(const tMatrixDiscretes& A, const tMatrixDiscretes& B, int r) const;
 
 		//
+		/// Choose the matrix B so that AB is invertible
+		//
+		bool chooseB(const tMatrixDiscretes& A, int r, tMatrixDiscretes& B);
+
+		//
 		/// Get the (Q)-inverse
 		//
 		bool getQInverse(const tFuncMatrix& A, const tFuncMatrix& Q, tMatrixDiscretes& binv);
@@ -277,12 +282,17 @@ namespace core
 		//
 		/// Choose the matrix Q so that QA is invertible
 		//
-		bool chooseQ(const tMatrixDiscretes& A, int r, const tMatrixDiscretes& Q);
+		bool chooseQ(const tMatrixDiscretes& A, int r, tMatrixDiscretes& Q);
 
 		//
 		/// Get the (BQ)-inverse
 		//
 		bool getBQInverse(const tFuncMatrix& A, tMatrixDiscretes& binv);
+
+		//
+		/// Get the (BQ)-inverse
+		//
+		bool getBQInverse(const tMatrixDiscretes& A, tMatrixDiscretes& binv);
 
 		//
 		/// Get the (BQ)-inverse
@@ -398,6 +408,7 @@ namespace core
 		}
 
 		int impl_getRank(const tMatrixDiscretes& A, tMatrixDiscretes& permMatrix) const;
+		int impl_getRank(const tMatrixDiscrete& A, tMatrixDiscretes& permMatrix) const;
 
 		T getScalarProduct(const tMatrixDiscreteColumn& c1, const tMatrixDiscreteColumn& c2) const
 		{
@@ -442,16 +453,22 @@ template <class T, int algo>
 int core::apparatus<T, algo>::impl_getRank(const tMatrixDiscretes& A, tMatrixDiscretes& permMatrix) const
 {
 	assert (m_di.K >= 0);
-	const int m = A[0].getNumRows();
-	const int n = A[0].getNumCols();
+	return this->impl_getRank(A[0], permMatrix);
+}
+
+template <class T, int algo>
+int core::apparatus<T, algo>::impl_getRank(const tMatrixDiscrete& A, tMatrixDiscretes& permMatrix) const
+{
+	const int m = A.getNumRows();
+	const int n = A.getNumCols();
 	typedef std::pair<tMatrixDiscreteColumn, T> tVecNormPair;
 	typename tMatrixDiscrete::template numVector<tVecNormPair> d;
 	d.reserve(n);
-	d.push_back(std::make_pair(A[0].getColumn(1), 0));
+	d.push_back(std::make_pair(A.getColumn(1), 0));
 	d[1].second = this->getNormNonSqrt(d[1].first);
 	for (int j = 2; j <= n; ++j)
 	{
-		tMatrixDiscreteColumn aj = A[0].getColumn(j);
+		tMatrixDiscreteColumn aj = A.getColumn(j);
 		d.push_back(std::make_pair(aj, 0));
 		for (int i = 1; i < j; ++ i)
 		{
@@ -537,19 +554,25 @@ bool core::apparatus<T, algo>::getBQInverse(const tFuncMatrix& A, tMatrixDiscret
 {
 	tMatrixDiscretes discretes;
 	this->applyDiffTrans(A, discretes);
+	return this->getBQInverse(discretes, binv);
+}
+
+template <class T, int algo>
+bool core::apparatus<T, algo>::getBQInverse(const tMatrixDiscretes& A, tMatrixDiscretes& binv)
+{
 	tMatrixDiscretes permMatrix;
-	int r = this->impl_getRank(discretes, permMatrix);
+	int r = this->impl_getRank(A, permMatrix);
 	if (!this->isBQInvertible(A, r))
 		throw algoException("(Q)-Inversion: The matrix is not (B, Q)-invertible");
 	tMatrixDiscretes sdiscs;
-	sdiscs.reserve(discretes.size());
-	std::for_each(discretes.begin(), discretes.end(), 
+	sdiscs.reserve(A.size());
+	std::for_each(A.begin(), A.end(), 
 		[&](const tMatrixDiscrete& d)
 		{
 			sdiscs.push_back(d*permMatrix[0]);
 		}
 		);
-	return this->getBQInverse(discretes, r, sdiscs, binv);
+	return this->getBQInverse(A, r, sdiscs, binv);
 }
 
 template <class T, int algo>
@@ -572,9 +595,25 @@ bool core::apparatus<T, algo>::getBQInverse(const tMatrixDiscretes& A, int r, co
 
 	tMatrixDiscretes Q;
 	this->chooseQ(S, r, Q);
+	std::cout << "Chose Q as:\n";
+	std::copy(Q.begin(), Q.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
 	tMatrixDiscretes qinv;
 	this->getQInverse(S, r, Q, qinv);
-
+	std::cout << "Q-Inverse is:\n";
+	std::copy(qinv.begin(), qinv.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
+	tMatrixDiscretes R;
+	this->multDiscretes(qinv, A, R);
+	std::cout << "R is:\n";
+	std::copy(R.begin(), R.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
+	tMatrixDiscretes B;
+	this->chooseB(R, r, B);
+	std::cout << "Chose B as:\n";
+	std::copy(B.begin(), B.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
+	tMatrixDiscretes rinv;
+	this->getBInverse(R, r, B, rinv);
+	std::cout << "B-Inverse is:\n";
+	std::copy(rinv.begin(), rinv.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
+	return this->multDiscretes(rinv, qinv, binv);
 }
 
 template <class T, int algo>
@@ -650,15 +689,15 @@ bool core::apparatus<T, algo>::getBInverse(const tMatrixDiscretes& A, int r, con
 	//
 	tMatrixDiscretes AB;
 	this->multDiscretes(A, B, AB);
-	//std::cout << "AB:\n";
-	//std::copy(AB.begin(), AB.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
+	std::cout << "AB:\n";
+	std::copy(AB.begin(), AB.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
 	//
 	// Calculate the inverse to it
 	//
 	tMatrixDiscretes AB1;
 	this->getInverse(AB, r, AB1);
-	//std::cout << "AB1:\n";
-	//std::copy(AB1.begin(), AB1.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
+	std::cout << "AB1:\n";
+	std::copy(AB1.begin(), AB1.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
 	////
 	// Calculate the (B)-inverse
 	//
@@ -666,13 +705,33 @@ bool core::apparatus<T, algo>::getBInverse(const tMatrixDiscretes& A, int r, con
 }
 
 template <class T, int algo>
-bool core::apparatus<T, algo>::chooseQ(const tMatrixDiscretes& A, int r, const tMatrixDiscretes& Q)
+bool core::apparatus<T, algo>::chooseB(const tMatrixDiscretes& A, int r, tMatrixDiscretes& B)
 {
 	assert (m_di.K >= 0);
-	Q.resize(m_di.K+1, tMatrixDiscrete(A[0].getNumCols, A[0].getNumRows(), 0));
+	B.resize(m_di.K+1, tMatrixDiscrete(A[0].getNumCols(), A[0].getNumRows(), 0));
 	// Transpose the martix. Apply Gramm-Schmidt. Get the permutation matrix
 	// Transpose the permutation matrix and multiply with the original to get
 	// a row permutation such that the resulted matrix is invertible
+	//tMatrixDiscrete Atrans = A[0].getTranspose();
+	tMatrixDiscretes permMatrix;
+	(void) this->impl_getRank(A, permMatrix);
+	B[0] = permMatrix[0];
+	return true;
+}
+
+template <class T, int algo>
+bool core::apparatus<T, algo>::chooseQ(const tMatrixDiscretes& A, int r, tMatrixDiscretes& Q)
+{
+	assert (m_di.K >= 0);
+	Q.resize(m_di.K+1, tMatrixDiscrete(A[0].getNumCols(), A[0].getNumRows(), 0));
+	// Transpose the martix. Apply Gramm-Schmidt. Get the permutation matrix
+	// Transpose the permutation matrix and multiply with the original to get
+	// a row permutation such that the resulted matrix is invertible
+	tMatrixDiscrete Atrans = A[0].getTranspose();
+	tMatrixDiscretes permMatrix;
+	(void) this->impl_getRank(Atrans, permMatrix);
+	Q[0] = permMatrix[0].getTranspose();
+	return true;
 }
 
 template <class T, int algo>
