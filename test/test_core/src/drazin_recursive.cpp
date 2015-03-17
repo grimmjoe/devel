@@ -79,6 +79,7 @@ int main(int argc, char* argv[])
 	std::cout << "The original:\n";
 	printFuncMatrix(origMatrix);
 
+
 	if (app.checkDrazinInverse(theMatrixDiscretes, theDiscretes, di.K>0? di.K-1:0))
 		std::cout << "The calculation is correct" << std::endl;
 	else

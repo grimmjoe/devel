@@ -55,6 +55,7 @@ namespace core
 		typedef typename tMatrixDiscrete::tMatrixRow tMatrixDiscreteRow;
 		typedef typename tMatrixDiscrete::tMatrixColumn tMatrixDiscreteColumn;
 		typedef std::vector<tMatrixDiscrete> tMatrixDiscretes;
+		typedef std::vector<T> tScalarDiscretes;
 
 	
 		struct diffInfo
@@ -85,6 +86,17 @@ namespace core
 			for (int i = 1; i <= m; ++i)
 				for (int j = 1; j <= n; ++j)
 					if (!this->is_equal(a[i][j], b))
+						return false;
+			return true;
+		}
+
+		bool is_equal(const tMatrixDiscrete& a, const tMatrixDiscrete& b) const
+		{
+			const int m = a.getNumRows();
+			const int n = a.getNumCols();
+			for (int i = 1; i <= m; ++i)
+				for (int j = 1; j <= n; ++j)
+					if (!this->is_equal(a[i][j], b[i][j]))
 						return false;
 			return true;
 		}
@@ -133,6 +145,31 @@ namespace core
 		/// Multiply 2 discretes
 		//
 		bool multDiscretes(const tMatrixDiscretes& x, const tMatrixDiscretes& y, tMatrixDiscretes& out);
+
+		//
+		/// Power up the discretes
+		//
+		bool powerDiscretes(const tMatrixDiscretes& x, int n, tMatrixDiscretes& out);
+
+		//
+		/// Multiply 2 scalar discretes
+		//
+		bool multDiscretes(const tScalarDiscretes& x, const tScalarDiscretes& y, tScalarDiscretes& out);
+
+		//
+		/// Multiply scalar and matrix discretes
+		//
+		bool multDiscretes(const tScalarDiscretes& x, const tMatrixDiscretes& y, tMatrixDiscretes& out);
+
+		//
+		/// Power up the scalar discretes
+		//
+		bool powerDiscretes(const tScalarDiscretes& x, int n, tScalarDiscretes& out);
+
+		//
+		/// Inverse discrete
+		//
+		bool inverseDiscrete(const tScalarDiscretes& x, tScalarDiscretes& out);
 
 		//
 		/// Restore the original @a out from the discretes @a theDiscretes with reverse single-point
@@ -610,7 +647,6 @@ bool core::apparatus<T, algo>::getDrazinInverseRecursive(const tMatrixDiscretes&
 	int j = 1;
 	int p = 0;
 	bool toStop = j > n;
-	typedef std::vector<T> tScalarDiscretes;
 	std::vector<tScalarDiscretes> betta(n, tScalarDiscretes(m_di.K+1, 0));
 	tMatrixDiscrete I(n, n, 0);
 	this->makeIdentity(I);
@@ -664,6 +700,48 @@ bool core::apparatus<T, algo>::getDrazinInverseRecursive(const tMatrixDiscretes&
 		std::cout << "S[" << n << "]:\n";
 		std::copy(S[n].begin(), S[n].end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, " "));
 		std::cout << std::endl;
+	int u = n;
+	for (; u >= 1; --u)
+	{
+		int k = 0;
+		for (; k <= m_di.K; ++k)
+		{
+			if (!this->is_equal(betta[n-u][k], 0))
+				break;
+		}
+		if (k <= m_di.K)
+			break;
+	}
+	assert (u >= 1);
+	std::cout << "u = " << u << std::endl;
+	int l = n-u;
+	tMatrixDiscretes al;
+	this->powerDiscretes(A, l, al);
+	tMatrixDiscretes su;
+	this->powerDiscretes(S[u-1], l+1, su);
+	std::cout << "AL:\n";
+	std::copy(al.begin(), al.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, " "));
+	std::cout << std::endl;
+
+	std::cout << "S[u-1]^l+1:\n";
+	std::copy(su.begin(), su.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, " "));
+	std::cout << std::endl;
+
+	tMatrixDiscretes alsu;
+	this->multDiscretes(al, su, alsu);
+	tScalarDiscretes bettal;
+	this->powerDiscretes(betta[l], l+1, bettal);
+	std::cout << "bettal:\n";
+	std::copy(bettal.begin(), bettal.end(), std::ostream_iterator<T>(std::cout, " "));
+	std::cout << std::endl;
+	for (int k = 0; k <= m_di.K; ++k)
+		bettal[k] *= -1;
+	tScalarDiscretes bettalin;
+	this->inverseDiscrete(bettal, bettalin);
+	std::cout << "bettal-inverse:\n";
+	std::copy(bettalin.begin(), bettalin.end(), std::ostream_iterator<T>(std::cout, " "));
+	this->multDiscretes(bettalin, alsu, dinv);
+
 	return true;
 }
 
@@ -767,7 +845,7 @@ bool core::apparatus<T, algo>::checkB_Q_BQ_Inverse(const tMatrixDiscretes& A, co
 		std::cout << "k = " << k << std::endl;
 		std::cout << A[k] << std::endl;
 		std::cout << a_mult[k] << std::endl;
-		if (A[k] != a_mult[k])
+		if (!this->is_equal(A[k],a_mult[k]))
 		{
 			std::cerr << "Discretes not equal at " << k << std::endl;
 			return false;
@@ -789,7 +867,7 @@ bool core::apparatus<T, algo>::checkDrazinInverse(const tMatrixDiscretes& A, con
 		std::cout << "k = " << k << std::endl;
 		std::cout << inv[k] << std::endl;
 		std::cout << a_mult[k] << std::endl;
-		if (inv[k] != a_mult[k])
+		if (!this->is_equal(inv[k], a_mult[k]))
 		{
 			std::cerr << "Discretes not equal at " << k << std::endl;
 			return false;
@@ -803,7 +881,7 @@ bool core::apparatus<T, algo>::checkDrazinInverse(const tMatrixDiscretes& A, con
 		std::cout << "k = " << k << std::endl;
 		std::cout << a_ainv[k] << std::endl;
 		std::cout << ainv_a[k] << std::endl;
-		if (a_ainv[k] != ainv_a[k])
+		if (!this->is_equal(a_ainv[k], ainv_a[k]))
 		{
 			std::cerr << "Discretes not equal at " << k << std::endl;
 			return false;
@@ -1295,6 +1373,55 @@ bool core::apparatus<T, algo>::subtractDiscretes(const tMatrixDiscretes& x, cons
 }
 
 template <class T, int algo>
+bool core::apparatus<T, algo>::powerDiscretes(const tMatrixDiscretes& x, int n, tMatrixDiscretes& out)
+{
+	if (n == 0)
+	{
+		out.resize(m_di.K+1, tMatrixDiscrete(x[0].getNumRows(), x[0].getNumCols(), 0));
+		this->makeIdentity(out[0]);
+		return true;
+	}
+	if (n == 1)
+	{
+		out = x;
+		return true;
+	}
+	if (n == 2)
+	{
+		this->multDiscretes(x, x, out);
+		return true;
+	}
+	tMatrixDiscretes xn1;
+	this->powerDiscretes(x, n-1, xn1);
+	return this->multDiscretes(xn1, x, out);
+}
+
+template <class T, int algo>
+bool core::apparatus<T, algo>::powerDiscretes(const tScalarDiscretes& x, int n, tScalarDiscretes& out)
+{
+	if (n == 0)
+	{
+		out.resize(m_di.K+1, T(0));
+		out[0] = 1;
+		return true;
+	}
+	if (n == 1)
+	{
+		out = x;
+		return true;
+	}
+	if (n == 2)
+	{
+		this->multDiscretes(x, x, out);
+		return true;
+	}
+	tScalarDiscretes xn1;
+	this->powerDiscretes(x, n-1, xn1);
+	return this->multDiscretes(xn1, x, out);
+}
+
+
+template <class T, int algo>
 bool core::apparatus<T, algo>::multDiscretes(const tMatrixDiscretes& x, const tMatrixDiscretes& y, tMatrixDiscretes& out)
 {
 	assert (m_di.K+1 == x.size());
@@ -1313,6 +1440,56 @@ bool core::apparatus<T, algo>::multDiscretes(const tMatrixDiscretes& x, const tM
 		{
 			out[k] += x[l]*y[k-l];
 		}
+	}
+	return true;
+}
+
+template <class T, int algo>
+bool core::apparatus<T, algo>::multDiscretes(const tScalarDiscretes& x, const tMatrixDiscretes& y, tMatrixDiscretes& out)
+{
+	assert (m_di.K+1 == x.size());
+	assert (m_di.K+1 == y.size());
+	assert (m_di.K >= 0);
+	out.resize(m_di.K+1, tMatrixDiscrete(y[0].getNumRows(), y[0].getNumCols(), 0));
+	for (int k = 0; k <= m_di.K; ++k)
+	{
+		for (int l = 0; l <= k; ++l)
+		{
+			out[k] += x[l]*y[k-l];
+		}
+	}
+	return true;
+}
+
+template <class T, int algo>
+bool core::apparatus<T, algo>::multDiscretes(const tScalarDiscretes& x, const tScalarDiscretes& y, tScalarDiscretes& out)
+{
+	assert (m_di.K+1 == x.size());
+	assert (m_di.K+1 == y.size());
+	assert (m_di.K >= 0);
+	out.resize(m_di.K+1, T(0));
+	for (int k = 0; k <= m_di.K; ++k)
+	{
+		for (int l = 0; l <= k; ++l)
+		{
+			out[k] += x[l]*y[k-l];
+		}
+	}
+	return true;
+}
+
+template <class T, int algo>
+bool core::apparatus<T, algo>::inverseDiscrete(const tScalarDiscretes& x, tScalarDiscretes& out)
+{
+	out.resize(m_di.K+1, T(0));
+	if (x[0] == 0)
+		throw algoException("Discrete-Inversion: The discrete cannot be inverted");
+	out[0] = 1./x[0];
+	for (int k = 1; k <= m_di.K; ++k)
+	{
+		for (int l = 1; l <= k; ++l)
+			out[k] += out[k-l]*x[l];
+		out[k] = -out[k]/x[0];
 	}
 	return true;
 }

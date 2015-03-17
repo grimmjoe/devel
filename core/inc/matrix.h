@@ -262,6 +262,14 @@ namespace core
 					(*this)[i][j] = mat[i][j];
 			return *this;
 		}
+
+		matrix<E>& operator *=(const E& e)
+		{
+			for (int i = 1; i <= this->getNumRows(); ++i)
+				for (int j = 1; j <= this->getNumCols(); ++j)
+					(*this)[i][j] *= e;
+			return *this;
+		}
 	};
 
 	template <class Elem>

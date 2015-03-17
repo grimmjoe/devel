@@ -38,6 +38,9 @@ EXE6:=bin/rank
 EXE7:=bin/bq_inverse
 EXE8:=bin/drazin_recursive
 
+##debug: CXXFLAGS += -DDEBUG -g
+##debug: default
+
 default: $(EXE) $(EXE2) $(EXE3) $(EXE4) $(EXE5) $(EXE6) $(EXE7) $(EXE8)
 
 .PHONY: directories
