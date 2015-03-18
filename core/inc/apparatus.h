@@ -408,24 +408,31 @@ namespace core
 		bool isDrazinInvertible(const tMatrixDiscretes& A) const;
 
 		//
-		/// Get the Drazin inverse
+		/// Get the Drazin inverse recursive
 		//
 		bool getDrazinInverseRecursive(const tFuncMatrix& A, tMatrixDiscretes& dinv);
 
 		//
-		/// Get the Drazin inverse
+		/// Get the Drazin inverse recursive
 		//
 		bool getDrazinInverseRecursive(const tMatrixDiscretes& A, tMatrixDiscretes& dinv);
 
 		//
-		/// Get the Drazin inverse
+		/// Get the Drazin inverse - skeleton decomposition
 		//
-		bool getDrazinInverseRecursive(const tFuncMatrix& A, int r, tMatrixDiscretes& dinv);
+		bool getDrazinInverseSkeleton(const tFuncMatrix& A, tMatrixDiscretes& dinv);
 
 		//
-		/// Get the Drazin inverse
+		/// Get the Drazin inverse - skeleton decomposition
 		//
-		bool getDrazinInverseRecursive(const tMatrixDiscretes& A, int r, tMatrixDiscretes& dinv);
+		bool getDrazinInverseSkeleton(const tMatrixDiscretes& A, tMatrixDiscretes& dinv);
+	
+	/// Utilities
+	public:
+		//
+		/// Get the skeleton rep of the matrix
+		//
+		bool getSkeleton(const tMatrixDiscretes& A, tMatrixDiscretes& S, tMatrixDiscretes& R);
 
 	
 	//// Checks
@@ -750,6 +757,80 @@ bool core::apparatus<T, algo>::getDrazinInverseRecursive(const tMatrixDiscretes&
 }
 
 template <class T, int algo>
+bool core::apparatus<T, algo>::getDrazinInverseSkeleton(const tFuncMatrix& A, tMatrixDiscretes& dinv)
+{
+	if (!this->isDrazinInvertible(A))
+		throw algoException("Drazin Inversion: the matrix is not Drazin-invertible");
+	tMatrixDiscretes discretes;
+	this->applyDiffTrans(A, discretes);
+	return this->getDrazinInverseRecursive(discretes, dinv);
+}
+
+template <class T, int algo>
+bool core::apparatus<T, algo>::getSkeleton(const tMatrixDiscretes& A, tMatrixDiscretes& S, tMatrixDiscretes& R)
+{
+	tMatrixDiscretes permMatrix;
+	int r = this->impl_getRank(A, permMatrix);
+	S.reserve(A.size());
+	std::for_each(A.begin(), A.end(), 
+		[&](const tMatrixDiscrete& d)
+		{
+			S.push_back(d*permMatrix[0]);
+		}
+		);
+	std::cout << "S:\n";
+	std::copy(S.begin(), S.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
+	tMatrixDiscretes Q;
+	this->chooseQ(S, r, Q);
+	std::cout << "Chose Q as:\n";
+	std::copy(Q.begin(), Q.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
+	tMatrixDiscretes qinv;
+	this->getQInverse(S, r, Q, qinv);
+	std::cout << "Q-Inverse is:\n";
+	std::copy(qinv.begin(), qinv.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
+	this->multDiscretes(qinv, A, R);
+	std::cout << "R is:\n";
+	std::copy(R.begin(), R.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
+	return true;
+}
+
+template <class T, int algo>
+bool core::apparatus<T, algo>::getDrazinInverseSkeleton(const tMatrixDiscretes& A, tMatrixDiscretes& dinv)
+{
+	assert (m_di.K >= 0);
+	const int n = A[0].getNumRows();
+	tMatrixDiscretes an1;
+	this->powerDiscretes(A, n-1, an1);
+	tMatrixDiscretes an;
+	this->multDiscretes(an1, A, an);
+	std::cout << "An:\n";
+	std::copy(an.begin(), an.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
+	tMatrixDiscretes B;
+	tMatrixDiscretes C;
+	this->getSkeleton(an, B, C);
+	int r = B[0].getNumCols();
+	tMatrixDiscretes CB;
+	this->multDiscretes(C, B, CB);
+	std::cout << "CB:\n";
+	std::copy(CB.begin(), CB.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
+	std::cout << std::endl;
+	tMatrixDiscretes X1;
+	this->getInverse(CB, r, X1);
+	std::cout << "X1:\n";
+	std::copy(X1.begin(), X1.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
+	tMatrixDiscretes x12;
+	this->multDiscretes(X1, X1, x12);
+	std::cout << "Got x12\n";
+	tMatrixDiscretes an1B;
+	this->multDiscretes(an1, B, an1B);
+	std::cout << "Got an1B\n";
+	tMatrixDiscretes an1Bx12;
+	this->multDiscretes(an1B, x12, an1Bx12);
+	std::cout << "Got an1Bx12\n";
+	return this->multDiscretes(an1Bx12, C, dinv);
+}
+
+template <class T, int algo>
 bool core::apparatus<T, algo>::isBQInvertible(const tFuncMatrix& A) const
 {
 	int r = this->getRank(A);
@@ -900,7 +981,7 @@ bool core::apparatus<T, algo>::isBInvertible(const tFuncMatrix& A, const tFuncMa
 {
 	// TODO - What about the matrix B?
 	// TODO - the product A*B must be invertible
-	return (A.getNumRows() < A.getNumCols()) && (r == A.getNumRows())
+	return (A.getNumRows() <= A.getNumCols()) && (r == A.getNumRows())
 			&& (B.getNumRows() == A.getNumCols()) && (B.getNumCols() == A.getNumRows());
 }
 
@@ -910,7 +991,7 @@ bool core::apparatus<T, algo>::isBInvertible(const tMatrixDiscretes& A, const tM
 	// TODO - What about the matrix B?
 	// TODO - the product A*B must be invertible
 	assert (m_di.K >= 0);
-	return (A[0].getNumRows() < A[0].getNumCols()) && (r == A[0].getNumRows())
+	return (A[0].getNumRows() <= A[0].getNumCols()) && (r == A[0].getNumRows())
 			&& (B[0].getNumRows() == A[0].getNumCols()) && (B[0].getNumCols() == A[0].getNumRows());
 }
 
@@ -997,7 +1078,7 @@ bool core::apparatus<T, algo>::isQInvertible(const tFuncMatrix& A, const tFuncMa
 {
 	// TODO - What about the matrix Q?
 	// TODO - the product Q*A must be invertible
-	return (r == A.getNumCols()) && (A.getNumCols() < A.getNumRows())
+	return (r == A.getNumCols()) && (A.getNumCols() <= A.getNumRows())
 			&& (Q.getNumRows() == A.getNumCols()) && (Q.getNumCols() == A.getNumRows());
 }
 
@@ -1007,7 +1088,7 @@ bool core::apparatus<T, algo>::isQInvertible(const tMatrixDiscretes& A, const tM
 	// TODO - What about the matrix Q?
 	// TODO - the product Q*A must be invertible
 	assert (m_di.K >= 0);
-	return (r == A[0].getNumCols()) && (A[0].getNumCols() < A[0].getNumRows())
+	return (r == A[0].getNumCols()) && (A[0].getNumCols() <= A[0].getNumRows())
 			&& (Q[0].getNumRows() == A[0].getNumCols()) && (Q[0].getNumCols() == A[0].getNumRows());
 }
 
