@@ -734,8 +734,12 @@ bool core::apparatus<T, algo>::getDrazinInverseRecursive(const tMatrixDiscretes&
 	std::cout << "bettal:\n";
 	std::copy(bettal.begin(), bettal.end(), std::ostream_iterator<T>(std::cout, " "));
 	std::cout << std::endl;
-	for (int k = 0; k <= m_di.K; ++k)
-		bettal[k] *= -1;
+	// TODO - This might not be true but it seams it is
+	if ( n % 2 == 0)
+	{
+		for (int k = 0; k <= m_di.K; ++k)
+			bettal[k] *= -1;
+	}
 	tScalarDiscretes bettalin;
 	this->inverseDiscrete(bettal, bettalin);
 	std::cout << "bettal-inverse:\n";
