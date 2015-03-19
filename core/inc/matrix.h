@@ -152,6 +152,12 @@ namespace core
 			return mc;
 		}
 
+		void swap(int i, int k)
+		{
+			assert (i <= this->getNumRows() && k <= this->getNumRows());
+			(*this)[i].swap((*this)[k]);
+		}
+
 		void setComparator(std::shared_ptr<comparator<E> > cm)
 		{
 			m_comparator = cm;

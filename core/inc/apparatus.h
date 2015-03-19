@@ -426,6 +426,16 @@ namespace core
 		/// Get the Drazin inverse - skeleton decomposition
 		//
 		bool getDrazinInverseSkeleton(const tMatrixDiscretes& A, tMatrixDiscretes& dinv);
+
+		//
+		/// Get the Drazin inverse - canonical 
+		//
+		bool getDrazinInverseCanonical(const tFuncMatrix& A, tMatrixDiscretes& dinv);
+
+		//
+		/// Get the Drazin inverse - canonical
+		//
+		bool getDrazinInverseCanonical(const tMatrixDiscretes& A, tMatrixDiscretes& dinv);
 	
 	/// Utilities
 	public:
@@ -521,6 +531,11 @@ namespace core
 			int m = std::min(d.getNumRows(), d.getNumCols());
 			for (int i = 1; i <= m; ++i)
 				d[i][i] = 1;
+		}
+
+		T getIdentity(int k, int i, int j)
+		{
+			return (k == 0) && (i == j) ? 1 : 0;
 		}
 
 	protected:
@@ -828,6 +843,227 @@ bool core::apparatus<T, algo>::getDrazinInverseSkeleton(const tMatrixDiscretes& 
 	this->multDiscretes(an1B, x12, an1Bx12);
 	std::cout << "Got an1Bx12\n";
 	return this->multDiscretes(an1Bx12, C, dinv);
+}
+
+template <class T, int algo>
+bool core::apparatus<T, algo>::getDrazinInverseCanonical(const tFuncMatrix& A, tMatrixDiscretes& dinv)
+{
+	if (!this->isDrazinInvertible(A))
+		throw algoException("Drazin Inversion: the matrix is not Drazin-invertible");
+	tMatrixDiscretes discretes;
+	this->applyDiffTrans(A, discretes);
+	return this->getDrazinInverseCanonical(discretes, dinv);
+}
+
+template <class T, int algo>
+bool core::apparatus<T, algo>::getDrazinInverseCanonical(const tMatrixDiscretes& A, tMatrixDiscretes& dinv)
+{
+	assert (m_di.K >= 0);
+	const int n = A[0].getNumRows();
+	tMatrixDiscretes an;
+	this->powerDiscretes(A, n, an);
+	tMatrixDiscretes R = an;
+	for (int i0 = 1; i0 <= n; ++i0)
+	{
+		int j0 = i0;
+		std::cout << "i0 = " << i0 << std::endl;
+		int imax = i0;
+		for (int i = i0+1; i <= n; ++i)
+		{
+			if (R[0][i][j0] > R[0][imax][j0])
+				imax = i;
+		}
+		R[0].swap(imax, i0);
+		if (this->is_equal(R[0][i0][j0], 0))
+		{
+			std::cout << "i0=" << i0 << ",j0=" << j0 << " is NULL\n";
+			continue;
+		}
+		tScalarDiscretes rk(m_di.K+1, 0);
+		for (int k = 0; k <= m_di.K; ++k)
+			rk[k] = R[k][i0][j0];
+		for (int k = 0; k <= m_di.K; ++k)
+		{
+			for (int j = j0; j <= n; ++j)
+			{
+				T sum = 0;
+				for (int l = 1; l <= k; ++l)
+				{
+					sum += R[k-l][i0][j]*rk[l];
+				}
+				R[k][i0][j] = (R[k][i0][j]-sum)/rk[0];
+				if (this->is_equal(R[k][i0][j], 0))
+					R[k][i0][j]=0;
+			}
+		}
+
+		for (int i = 1; i <= n; ++i)
+		{
+			if (i == i0)
+				continue;
+			std::cout << "i = " << i << std::endl;
+			std::vector<tScalarDiscretes> b(m_di.K+1, tScalarDiscretes(n-j0+1, 0));
+			for (int k = 0; k <= m_di.K; ++k)
+			{
+				int bi = 0;
+				for (int j = j0; j <= n; ++j)
+				{
+					T sum = 0;
+					for (int l = 0; l <= k; ++l)
+					{
+						sum += R[l][i0][j]*R[k-l][i][j0];
+					}
+					b[k][bi++] = sum;
+				}
+			}
+			for (int k = 0; k <= m_di.K; ++k)
+			{
+				int bi = 0;
+				for (int j = j0; j <= n; ++j)
+				{
+					R[k][i][j] = R[k][i][j]-b[k][bi++];
+					if (this->is_equal(R[k][i][j], 0))
+						R[k][i][j] = 0;
+				}
+			}
+		}
+	}
+	std::cout << "R:\n";
+	std::copy(R.begin(), R.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
+	std::cout << std::endl;
+	tMatrixDiscretes P(m_di.K+1, tMatrixDiscrete(n, n, 0));
+	int pj = 1;
+	//std::vector<int> theCols;
+	for (int j = 1; j <= n; ++j)
+	{
+		int k = 0;
+		for (; k <= m_di.K; ++k)
+			if (!this->is_equal(R[k][j][j], 0))
+				break;
+
+		if (k <= m_di.K)
+		{
+			for (int k = 0; k <= m_di.K; ++k)
+				for (int i = 1; i <= n; ++i)
+					P[k][i][pj] = an[k][i][j];
+			++pj;
+			//theCols.push_back(j);
+		}
+		else
+		{
+			for (int k = 0; k <= m_di.K; ++k)
+				for (int i = 1; i <= n; ++i)
+					P[k][i][pj]=this->getIdentity(k, i, j)-R[k][i][j];
+			++pj;
+		}
+	}
+	std::cout << "P:\n";
+	std::copy(P.begin(), P.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
+	tMatrixDiscretes P1;
+	this->getInverse(P, n, P1);
+	std::cout << "P1:\n";
+	std::copy(P1.begin(), P1.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
+	tMatrixDiscretes P1A;
+	this->multDiscretes(P1, A, P1A);
+	tMatrixDiscretes TM;
+	this->multDiscretes(P1A, P, TM);
+	std::cout << "TM:\n";
+	std::copy(TM.begin(), TM.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
+	int cn = n;
+	for (; cn >= 1; --cn)
+	{
+		assert (this->is_equal(TM[0][1][cn], TM[0][cn][1]));
+		if (!this->is_equal(TM[0][1][cn], 0))
+			break;
+	}
+	assert (cn >= 1);
+	tMatrixDiscretes C(m_di.K+1, tMatrixDiscrete(cn, cn, 0));
+	for (int k = 0; k <= m_di.K; ++k)
+	{
+		for (int i = 1; i <= cn; ++i)
+			for (int j = 1; j <= cn; ++j)
+				C[k][i][j] = TM[k][i][j];
+	}
+	std::cout << "C:\n";
+	std::copy(C.begin(), C.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
+	tMatrixDiscretes C1;
+	this->getInverse(C, cn, C1);
+	std::cout << "C1:\n";
+	std::copy(C1.begin(), C1.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
+	tMatrixDiscretes C1En(m_di.K+1, tMatrixDiscrete(n, n, 0));
+	for (int k = 0; k <= m_di.K; ++k)
+		for (int i = 1; i <= cn; ++i)
+			for (int j = 1; j <= cn; ++j)
+				C1En[k][i][j] = C1[k][i][j];
+	tMatrixDiscretes PC1;
+	this->multDiscretes(P, C1En, PC1);
+	this->multDiscretes(PC1, P1, dinv);
+
+	//if (pj != n)
+	//{
+	//	//tMatrixDiscretes I(m_di.K+1, tMatrixDiscrete(n, n, 0));
+	//	//this->makeIdentity(I[0]);
+	//	//tMatrixDiscretes IH;
+	//	//this->subtractDiscretes(I, R, IH);
+	//	for (int k = 0; k <= m_di.K; ++k)
+	//	{
+	//		for (int i
+	//	}
+	//}
+
+	//for (int i0 = 1; i0 <= n; ++i0)
+	//{
+	//	int j0 = i0;
+	//	int imax = i0;
+	//	for (int i = i0+1; i <= n; ++i)
+	//	{
+	//		if (R[0][i][j0] > R[0][imax][j0])
+	//			imax = i;
+	//	}
+	//	for (int k = 0; k <= m_di.K; ++k)
+	//	{
+	//		R[k].swap(i0, imax);
+	//		if (this->is_equal(R[k][i0][j0], 0))
+	//			
+	//		T sum = 0;
+	//		for (int l = 1; l <= k; ++l)
+	//		{
+	//			sum += R[K-l][i0][j]*R[l][i0][j0];
+	//		}
+	//		R[k][i0][j] = (A[k][i0][j]-sum)/R[k][i0][j0];
+	//	}
+	//}
+
+	//tMatrixDiscretes an1;
+	//this->powerDiscretes(A, n-1, an1);
+	//tMatrixDiscretes an;
+	//this->multDiscretes(an1, A, an);
+	//std::cout << "An:\n";
+	//std::copy(an.begin(), an.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
+	//tMatrixDiscretes B;
+	//tMatrixDiscretes C;
+	//this->getSkeleton(an, B, C);
+	//int r = B[0].getNumCols();
+	//tMatrixDiscretes CB;
+	//this->multDiscretes(C, B, CB);
+	//std::cout << "CB:\n";
+	//std::copy(CB.begin(), CB.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
+	//std::cout << std::endl;
+	//tMatrixDiscretes X1;
+	//this->getInverse(CB, r, X1);
+	//std::cout << "X1:\n";
+	//std::copy(X1.begin(), X1.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
+	//tMatrixDiscretes x12;
+	//this->multDiscretes(X1, X1, x12);
+	//std::cout << "Got x12\n";
+	//tMatrixDiscretes an1B;
+	//this->multDiscretes(an1, B, an1B);
+	//std::cout << "Got an1B\n";
+	//tMatrixDiscretes an1Bx12;
+	//this->multDiscretes(an1B, x12, an1Bx12);
+	//std::cout << "Got an1Bx12\n";
+	//return this->multDiscretes(an1Bx12, C, dinv);
+	return true;
 }
 
 template <class T, int algo>
