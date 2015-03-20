@@ -10,6 +10,7 @@
 #include "matrix.h"
 #include "comparator.h"
 #include <vector>
+#include <set>
 #include <cmath>
 #include <memory>
 
@@ -538,6 +539,26 @@ namespace core
 			return (k == 0) && (i == j) ? 1 : 0;
 		}
 
+		void checkVal(tMatrixDiscretes& discs, T val = 0)
+		{
+			std::for_each(discs.begin(), discs.end(),
+				[&](tMatrixDiscrete& d)
+				{
+					this->checkVal(d, val);
+				}
+				);
+		}
+
+		void checkVal(tMatrixDiscrete& d, T val = 0)
+		{
+			const int m = d.getNumRows();
+			const int n = d.getNumCols();
+			for (int i = 1; i <= m; ++i)
+				for (int j = 1; j <= n; ++j)
+					if (this->is_equal(d[i][j], val))
+						d[i][j] = val;
+		}
+
 	protected:
 		tDiffInfo m_di;
 		std::shared_ptr<comparator<T> > m_comparator;
@@ -933,7 +954,7 @@ bool core::apparatus<T, algo>::getDrazinInverseCanonical(const tMatrixDiscretes&
 	std::cout << std::endl;
 	tMatrixDiscretes P(m_di.K+1, tMatrixDiscrete(n, n, 0));
 	int pj = 1;
-	//std::vector<int> theCols;
+	std::set<int> theCols;
 	for (int j = 1; j <= n; ++j)
 	{
 		int k = 0;
@@ -947,15 +968,17 @@ bool core::apparatus<T, algo>::getDrazinInverseCanonical(const tMatrixDiscretes&
 				for (int i = 1; i <= n; ++i)
 					P[k][i][pj] = an[k][i][j];
 			++pj;
-			//theCols.push_back(j);
+			theCols.insert(j);
 		}
-		else
-		{
-			for (int k = 0; k <= m_di.K; ++k)
-				for (int i = 1; i <= n; ++i)
-					P[k][i][pj]=this->getIdentity(k, i, j)-R[k][i][j];
-			++pj;
-		}
+	}
+	for (int j = 1; j <= n; ++j)
+	{
+		if (theCols.find(j) != theCols.end())
+			continue;
+		for (int k = 0; k <= m_di.K; ++k)
+			for (int i = 1; i <= n; ++i)
+				P[k][i][pj]=this->getIdentity(k, i, j)-R[k][i][j];
+		++pj;
 	}
 	std::cout << "P:\n";
 	std::copy(P.begin(), P.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
@@ -973,9 +996,18 @@ bool core::apparatus<T, algo>::getDrazinInverseCanonical(const tMatrixDiscretes&
 	T sum = 0;
 	for (; cn >= 1; --cn)
 	{
-		assert (this->is_equal(TM[0][1][cn], TM[0][cn][1]));
+		if (this->is_equal(TM[0][1][cn], 0))
+			TM[0][1][cn] = 0;
+		if (this->is_equal(TM[0][cn][1], 0))
+			TM[0][cn][1] = 0;
 		if (!this->is_equal(TM[0][1][cn], 0))
 			break;
+		else
+		{
+			assert (this->is_equal(TM[0][1][cn], TM[0][cn][1]));
+		}
+		if (this->is_equal(TM[0][cn][cn], 0))
+			TM[0][cn][cn] = 0;
 		sum += TM[0][cn][cn];
 	}
 	assert (cn >= 1);
@@ -1192,12 +1224,14 @@ bool core::apparatus<T, algo>::checkDrazinInverse(const tMatrixDiscretes& A, con
 	this->multDiscretes(ainv_a, inv, a_mult);
 	for (int k = 0; k <= K; ++k)
 	{
-		std::cout << "k = " << k << std::endl;
-		std::cout << inv[k] << std::endl;
-		std::cout << a_mult[k] << std::endl;
+		//std::cout << "k = " << k << std::endl;
+		//std::cout << inv[k] << std::endl;
+		//std::cout << a_mult[k] << std::endl;
 		if (!this->is_equal(inv[k], a_mult[k]))
 		{
 			std::cerr << "Discretes not equal at " << k << std::endl;
+			std::cout << inv[k] << std::endl;
+			std::cout << a_mult[k] << std::endl;
 			return false;
 		}
 	}
@@ -1206,12 +1240,14 @@ bool core::apparatus<T, algo>::checkDrazinInverse(const tMatrixDiscretes& A, con
 	this->multDiscretes(A, inv, a_ainv);
 	for (int k = 0; k <= K; ++k)
 	{
-		std::cout << "k = " << k << std::endl;
-		std::cout << a_ainv[k] << std::endl;
-		std::cout << ainv_a[k] << std::endl;
+		//std::cout << "k = " << k << std::endl;
+		//std::cout << a_ainv[k] << std::endl;
+		//std::cout << ainv_a[k] << std::endl;
 		if (!this->is_equal(a_ainv[k], ainv_a[k]))
 		{
 			std::cerr << "Discretes not equal at " << k << std::endl;
+			std::cout << a_ainv[k] << std::endl;
+			std::cout << ainv_a[k] << std::endl;
 			return false;
 		}
 	}
@@ -1504,14 +1540,20 @@ bool core::apparatus<T, algo>::impl_getInverse(const tMatrixDiscretes& A, int r,
 	tMatrixDiscretes L;
 	tMatrixDiscretes U;
 	this->getLU(A, r, L, U);
+	this->checkVal(L, 0);
+	this->checkVal(U, 0);
+	std::cout << "L:\n";
+	std::copy(L.begin(), L.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
+	std::cout << "U:\n";
+	std::copy(U.begin(), U.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
 	tMatrixDiscretes L1;
 	this->getInverseLowerTriangular(L, r, L1);
 	tMatrixDiscretes U1;
 	this->getInverseUpperTriangular(U, r, U1);
-	//std::cout << "L1:\n";
-	//std::copy(L1.begin(), L1.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
-	//std::cout << "U1:\n";
-	//std::copy(U1.begin(), U1.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
+	std::cout << "L1:\n";
+	std::copy(L1.begin(), L1.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
+	std::cout << "U1:\n";
+	std::copy(U1.begin(), U1.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
 	return this->multDiscretes(U1, L1, inv);
 }
 
@@ -1572,46 +1614,94 @@ bool core::apparatus<T, algo>::getLU(const tMatrixDiscretes& discretes, int r, t
 		}
 	}
 
-	// Next
+	//std::cout << "After first, L:\n";
+	//std::copy(L.begin(), L.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
+	//std::cout << "After first, U:\n";
+	//std::copy(U.begin(), U.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
+
 	for (int k = 0; k < K; ++k)
 	{
-		for (int i = 2; i <= r; ++i)
+		int li = 2;
+		int ui = 2;
+		while (li <= r && ui <= r)
 		{
-			for (int p = 2; p <= i; ++p)
+			// L
+			for (int p = 2; p <= li; ++p)
 			{
 				double sum = 0;
 				for (int j = 1; j <= p-1; ++j)
 				{
 					for (int l = 0; l <= k; ++l)
 					{
-						sum += L[l][i][j]*U[k-l][j][p];
+						sum += L[l][li][j]*U[k-l][j][p];
 					}
 				}
-				L[k][i][p] = discretes[k][i][p] - sum;
+				L[k][li][p] = discretes[k][li][p] - sum;
 			}
-		}
-	}
 
-	for (int k = 0; k < K; ++k)
-	{
-		for (int i = 2; i <= r; ++i)
-		{
-			for (int p = i; p <= r; ++p)
+			// U
+			for (int p = ui; p <= r; ++p)
 			{
 				double sum1 = 0;
-				for (int j = 1; j <= i-1; ++j)
+				for (int j = 1; j <= ui-1; ++j)
 					for (int g = 0; g <= k; ++g)
-						sum1 += L[g][i][j]*U[k-g][j][p];
+						sum1 += L[g][ui][j]*U[k-g][j][p];
 
 				double sum2 = 0;
 				for (int l = 1; l <= k; ++l)
 				{
-					sum2 += U[k-l][i][p]*L[l][i][i];
+					sum2 += U[k-l][ui][p]*L[l][ui][ui];
 				}
-				U[k][i][p] = (discretes[k][i][p] - sum1 - sum2)/L[0][i][i];
+				U[k][ui][p] = (discretes[k][ui][p] - sum1 - sum2)/L[0][ui][ui];
 			}
+			++li;
+			++ui;
 		}
 	}
+
+	//// Next
+	//for (int k = 0; k < K; ++k)
+	//{
+	//	for (int i = 2; i <= r; ++i)
+	//	{
+	//		for (int p = 2; p <= i; ++p)
+	//		{
+	//			double sum = 0;
+	//			for (int j = 1; j <= p-1; ++j)
+	//			{
+	//				for (int l = 0; l <= k; ++l)
+	//				{
+	//					sum += L[l][i][j]*U[k-l][j][p];
+	//				}
+	//			}
+	//			L[k][i][p] = discretes[k][i][p] - sum;
+	//		}
+	//	}
+	//}
+
+	////std::cout << "After second, L:\n";
+	////std::copy(L.begin(), L.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
+
+	//for (int k = 0; k < K; ++k)
+	//{
+	//	for (int i = 2; i <= r; ++i)
+	//	{
+	//		for (int p = i; p <= r; ++p)
+	//		{
+	//			double sum1 = 0;
+	//			for (int j = 1; j <= i-1; ++j)
+	//				for (int g = 0; g <= k; ++g)
+	//					sum1 += L[g][i][j]*U[k-g][j][p];
+
+	//			double sum2 = 0;
+	//			for (int l = 1; l <= k; ++l)
+	//			{
+	//				sum2 += U[k-l][i][p]*L[l][i][i];
+	//			}
+	//			U[k][i][p] = (discretes[k][i][p] - sum1 - sum2)/L[0][i][i];
+	//		}
+	//	}
+	//}
 
 	//std::cout << "L:\n";
 	//std::copy(L.begin(), L.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
