@@ -970,13 +970,20 @@ bool core::apparatus<T, algo>::getDrazinInverseCanonical(const tMatrixDiscretes&
 	std::cout << "TM:\n";
 	std::copy(TM.begin(), TM.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
 	int cn = n;
+	T sum = 0;
 	for (; cn >= 1; --cn)
 	{
 		assert (this->is_equal(TM[0][1][cn], TM[0][cn][1]));
 		if (!this->is_equal(TM[0][1][cn], 0))
 			break;
+		sum += TM[0][cn][cn];
 	}
 	assert (cn >= 1);
+	while (!this->is_equal(sum, 0) && cn <= n)
+	{
+		sum -= TM[0][cn][cn];
+		++cn;
+	}
 	tMatrixDiscretes C(m_di.K+1, tMatrixDiscrete(cn, cn, 0));
 	for (int k = 0; k <= m_di.K; ++k)
 	{
