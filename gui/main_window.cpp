@@ -1,5 +1,9 @@
 #include "main_window.h"
+#include "wizards.h"
+
 #include <QtGui>
+
+#include <iostream>
 
 static const char* sToolName = "GIMT";
 static const char* sTitle = "Generalized Inverse Matrices Tool";
@@ -85,6 +89,21 @@ void MainWindow::createFileMenuActions()
 
 void MainWindow::on_new()
 {
+	NewWizard wizard(this);
+	if (!wizard.exec())
+		return;
+	int numRows = wizard.field("new.numRows").toInt();
+	int numCols = wizard.field("new.numCols").toInt();
+	std::cout << "numRows = " << numRows << std::endl;
+	std::cout << "numCols = " << numCols << std::endl;
+	std::cout << "Matrix =:\n";
+	for (int i = 1; i <= numRows; ++i)
+	{
+		for (int j = 1; j <= numCols; ++j)
+			std::cout << wizard.getMatrix()->item(i, j)->text().toStdString() << " ";
+
+		std::cout << std::endl;
+	}
 }
 
 void MainWindow::on_open()
