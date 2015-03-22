@@ -4,6 +4,7 @@
 #include "function.h"
 #include "constant_function.h"
 #include "power_function.h"
+#include "parameter_function.h"
 #include "add.h"
 #include "subtract.h"
 #include "multiply.h"
@@ -13,6 +14,7 @@
 #include <set>
 #include <cmath>
 #include <memory>
+#include <iostream>
 
 //#include <iostream>
 //#include <algorithm>
@@ -176,7 +178,16 @@ namespace core
 		/// Restore the original @a out from the discretes @a theDiscretes with reverse single-point
 		/// Taylor transformations
 		//
-		bool restoreTaylorSingle(const tMatrixDiscretes& theDiscretes, tFuncMatrix& out);
+		bool restoreTaylorSingle(const tMatrixDiscretes& theDiscretes, tFuncMatrix& out)
+		{
+			return this->restoreTaylorSingle(theDiscretes, out, m_di.K);
+		}
+
+		//
+		/// Restore the original @a out from the discretes @a theDiscretes with reverse single-point
+		/// Taylor transformations
+		//
+		bool restoreTaylorSingle(const tMatrixDiscretes& theDiscretes, tFuncMatrix& out, int K);
 
 		//
 		/// Get LU decomposition of the matrix
@@ -197,6 +208,11 @@ namespace core
 		/// Get the rank of the matrix
 		//
 		int getRank(const tFuncMatrix& A) const;
+
+		//
+		/// Get the rank of the matrix
+		//
+		int getRank(const tMatrixDiscretes& A) const;
 	
 	//// Inverses
 	public:
@@ -276,6 +292,21 @@ namespace core
 		//
 		/// Get the (B)-inverse
 		//
+		bool getBInverse(const tFuncMatrix& A, tMatrixDiscretes& binv);
+
+		//
+		/// Get the (B)-inverse
+		//
+		bool getBInverse(const tFuncMatrix& A, int r, tMatrixDiscretes& binv);
+
+		//
+		/// Get the (B)-inverse
+		//
+		bool getBInverse(const tMatrixDiscretes& A, int r, tMatrixDiscretes& binv);
+
+		//
+		/// Get the (B)-inverse
+		//
 		bool getBInverse(const tFuncMatrix& A, const tFuncMatrix& B, tMatrixDiscretes& binv);
 
 		//
@@ -291,6 +322,16 @@ namespace core
 		//
 		/// Check if the matrx is (B)-invertible
 		//
+		bool isBInvertible(const tFuncMatrix& A, int r) const;
+
+		//
+		/// Check if the matrx is (B)-invertible
+		//
+		bool isBInvertible(const tMatrixDiscretes& A, int r) const;
+
+		//
+		/// Check if the matrx is (B)-invertible
+		//
 		bool isBInvertible(const tFuncMatrix& A, const tFuncMatrix& B, int r) const;
 
 		//
@@ -302,6 +343,21 @@ namespace core
 		/// Choose the matrix B so that AB is invertible
 		//
 		bool chooseB(const tMatrixDiscretes& A, int r, tMatrixDiscretes& B);
+
+		//
+		/// Get the (Q)-inverse
+		//
+		bool getQInverse(const tFuncMatrix& A, tMatrixDiscretes& binv);
+
+		//
+		/// Get the (Q)-inverse
+		//
+		bool getQInverse(const tFuncMatrix& A, int r, tMatrixDiscretes& binv);
+
+		//
+		/// Get the (Q)-inverse
+		//
+		bool getQInverse(const tMatrixDiscretes& A, int r, tMatrixDiscretes& binv);
 
 		//
 		/// Get the (Q)-inverse
@@ -327,6 +383,16 @@ namespace core
 		/// Check if the matrx is (Q)-invertible
 		//
 		bool isQInvertible(const tMatrixDiscretes& A, const tMatrixDiscretes& Q, int r) const;
+
+		//
+		/// Check if the matrx is (Q)-invertible
+		//
+		bool isQInvertible(const tFuncMatrix& A, int r) const;
+
+		//
+		/// Check if the matrx is (Q)-invertible
+		//
+		bool isQInvertible(const tMatrixDiscretes& A, int r) const;
 
 		//
 		/// Choose the matrix Q so that QA is invertible
@@ -571,8 +637,14 @@ int core::apparatus<T, algo>::getRank(const tFuncMatrix& A) const
 	// TODO - We need to calculate the rank correctly!!!
 	tMatrixDiscretes discretes;
 	this->applyDiffTrans(A, discretes);
+	return this->getRank(discretes);
+}
+
+template <class T, int algo>
+int core::apparatus<T, algo>::getRank(const tMatrixDiscretes& A) const
+{
 	tMatrixDiscretes pm;
-	return this->impl_getRank(discretes, pm);
+	return this->impl_getRank(A, pm);
 }
 
 template <class T, int algo>
@@ -1275,6 +1347,48 @@ bool core::apparatus<T, algo>::isBInvertible(const tMatrixDiscretes& A, const tM
 }
 
 template <class T, int algo>
+bool core::apparatus<T, algo>::isBInvertible(const tFuncMatrix& A, int r) const
+{
+	// TODO - What about the matrix B?
+	// TODO - the product A*B must be invertible
+	return (A.getNumRows() <= A.getNumCols()) && (r == A.getNumRows());
+}
+
+template <class T, int algo>
+bool core::apparatus<T, algo>::isBInvertible(const tMatrixDiscretes& A, int r) const
+{
+	// TODO - What about the matrix B?
+	// TODO - the product A*B must be invertible
+	assert (m_di.K >= 0);
+	return (A[0].getNumRows() <= A[0].getNumCols()) && (r == A[0].getNumRows());
+}
+
+template <class T, int algo>
+bool core::apparatus<T, algo>::getBInverse(const tFuncMatrix& A, tMatrixDiscretes& binv)
+{
+	tMatrixDiscretes discretes;
+	this->applyDiffTrans(A, discretes);
+	int r = this->getRank(discretes);
+	return this->getBInverse(discretes, r, binv);
+}
+
+template <class T, int algo>
+bool core::apparatus<T, algo>::getBInverse(const tFuncMatrix& A, int r, tMatrixDiscretes& binv)
+{
+	tMatrixDiscretes discretes;
+	this->applyDiffTrans(A, discretes);
+	return this->getBInverse(discretes, r, binv);
+}
+
+template <class T, int algo>
+bool core::apparatus<T, algo>::getBInverse(const tMatrixDiscretes& A, int r, tMatrixDiscretes& binv)
+{
+	tMatrixDiscretes B;
+	this->chooseB(A, r, B);
+	return this->getBInverse(A, r, B, binv);
+}
+
+template <class T, int algo>
 bool core::apparatus<T, algo>::getBInverse(const tFuncMatrix& A, const tFuncMatrix& B, tMatrixDiscretes& binv)
 {
 	return this->getBInverse(A, this->getRank(A), B, binv);
@@ -1298,10 +1412,10 @@ bool core::apparatus<T, algo>::getBInverse(const tMatrixDiscretes& A, int r, con
 	if (!this->isBInvertible(A, B, r))
 		throw algoException("(B)-Inversion: The matrix is not (B)-invertible");
 	
-	//std::cout << "A:\n";
-	//std::copy(A.begin(), A.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
-	//std::cout << "B:\n";
-	//std::copy(B.begin(), B.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
+	std::cout << "A:\n";
+	std::copy(A.begin(), A.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
+	std::cout << "B:\n";
+	std::copy(B.begin(), B.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
 	//
 	// Calculate the product of A*B
 	//
@@ -1326,6 +1440,7 @@ template <class T, int algo>
 bool core::apparatus<T, algo>::chooseB(const tMatrixDiscretes& A, int r, tMatrixDiscretes& B)
 {
 	assert (m_di.K >= 0);
+	(void) r;
 	B.resize(m_di.K+1, tMatrixDiscrete(A[0].getNumCols(), A[0].getNumRows(), 0));
 	// Transpose the martix. Apply Gramm-Schmidt. Get the permutation matrix
 	// Transpose the permutation matrix and multiply with the original to get
@@ -1341,6 +1456,7 @@ template <class T, int algo>
 bool core::apparatus<T, algo>::chooseQ(const tMatrixDiscretes& A, int r, tMatrixDiscretes& Q)
 {
 	assert (m_di.K >= 0);
+	(void) r;
 	Q.resize(m_di.K+1, tMatrixDiscrete(A[0].getNumCols(), A[0].getNumRows(), 0));
 	// Transpose the martix. Apply Gramm-Schmidt. Get the permutation matrix
 	// Transpose the permutation matrix and multiply with the original to get
@@ -1369,6 +1485,48 @@ bool core::apparatus<T, algo>::isQInvertible(const tMatrixDiscretes& A, const tM
 	assert (m_di.K >= 0);
 	return (r == A[0].getNumCols()) && (A[0].getNumCols() <= A[0].getNumRows())
 			&& (Q[0].getNumRows() == A[0].getNumCols()) && (Q[0].getNumCols() == A[0].getNumRows());
+}
+
+template <class T, int algo>
+bool core::apparatus<T, algo>::isQInvertible(const tFuncMatrix& A, int r) const
+{
+	// TODO - What about the matrix Q?
+	// TODO - the product Q*A must be invertible
+	return (r == A.getNumCols()) && (A.getNumCols() <= A.getNumRows());
+}
+
+template <class T, int algo>
+bool core::apparatus<T, algo>::isQInvertible(const tMatrixDiscretes& A, int r) const
+{
+	// TODO - What about the matrix Q?
+	// TODO - the product Q*A must be invertible
+	assert (m_di.K >= 0);
+	return (r == A[0].getNumCols()) && (A[0].getNumCols() <= A[0].getNumRows());
+}
+
+template <class T, int algo>
+bool core::apparatus<T, algo>::getQInverse(const tFuncMatrix& A, tMatrixDiscretes& binv)
+{
+	tMatrixDiscretes discretes;
+	this->applyDiffTrans(A, discretes);
+	int r = this->getRank(discretes);
+	return this->getBInverse(discretes, r, binv);
+}
+
+template <class T, int algo>
+bool core::apparatus<T, algo>::getQInverse(const tFuncMatrix& A, int r, tMatrixDiscretes& binv)
+{
+	tMatrixDiscretes discretes;
+	this->applyDiffTrans(A, discretes);
+	return this->getBInverse(discretes, r, binv);
+}
+
+template <class T, int algo>
+bool core::apparatus<T, algo>::getQInverse(const tMatrixDiscretes& A, int r, tMatrixDiscretes& binv)
+{
+	tMatrixDiscretes Q;
+	this->chooseQ(A, r, Q);
+	return this->getBInverse(A, r, Q, binv);
 }
 
 template <class T, int algo>
@@ -1913,10 +2071,10 @@ bool core::apparatus<T, algo>::inverseDiscrete(const tScalarDiscretes& x, tScala
 }
 
 template <class T, int algo>
-bool core::apparatus<T, algo>::restoreTaylorSingle(const tMatrixDiscretes& theDiscretes, tFuncMatrix& out)
+bool core::apparatus<T, algo>::restoreTaylorSingle(const tMatrixDiscretes& theDiscretes, tFuncMatrix& out, int K)
 {
-	assert (m_di.K+1 == theDiscretes.size());
-	assert (m_di.K >= 0);
+	//assert (m_di.K+1 == theDiscretes.size());
+	assert (K >= 0);
 	const int m = out.getNumRows();
 	const int n = out.getNumCols();
 	for (int i = 1; i <= m; ++i)
@@ -1924,7 +2082,7 @@ bool core::apparatus<T, algo>::restoreTaylorSingle(const tMatrixDiscretes& theDi
 		for (int j = 1; j <= n; ++j)
 		{
 			out[i][j] = tFunctionPtr(new const_function<tArgType>(theDiscretes[0][i][j]));
-			for (int k = 1; k <= m_di.K; ++k)
+			for (int k = 1; k <= K; ++k)
 			{
 				if (is_equal(theDiscretes[k][i][j], 0))
 					continue;

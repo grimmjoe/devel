@@ -4,12 +4,22 @@
 #include <QtGui>
 
 #include <iostream>
+#include <cassert>
 
 static const char* sToolName = "GIMT";
 static const char* sTitle = "Generalized Inverse Matrices Tool";
 
 MainWindow::MainWindow(QWidget* p)
 	: QMainWindow(p)
+	, m_di(0, 0, 0)
+	, m_app(m_di)
+	, m_func_matrix(1, 1, nullptr)
+	, m_binv_restore(1, 1, nullptr)
+	, m_qinv_restore(1, 1, nullptr)
+	, m_bqinv_restore(1, 1, nullptr)
+	, m_drazin_recursive_restore(1, 1, nullptr)
+	, m_drazin_skeleton_restore(1, 1, nullptr)
+	, m_drazin_canonical_restore(1, 1, nullptr)
 {
 	// GIM = Generalized Inverse Matrix
 	this->setObjectName(sToolName);
@@ -25,12 +35,27 @@ MainWindow::MainWindow(QWidget* p)
 	int x = (screenGeometry.width()-this->width()) / 2;
 	int y = (screenGeometry.height()-this->height()) / 2;
 	this->move(x, y);
+
+	m_rank = 0;
+	m_epsilon = 0.000001;
+	if (m_epsilon != 0)
+	{
+		m_app.setComparator(std::shared_ptr<core::comparator<double> >(new core::comparator<double>(m_epsilon)));
+	}
+
+	is_binv = false;
+	is_qinv = false;
+	is_bqinv = false;
+	is_drazin_recursive = false;
+	is_drazin_skeleton = false;
+	is_drazin_canonical = false;
 }
 
 void MainWindow::createWidgets()
 {
-	m_matrix_widget = new QWidget();
-	m_central_widget = new QWidget();
+	m_matrix_widget = new QTableWidget();
+	m_central_widget = new QTabWidget();
+	m_central_widget->setTabsClosable(true);
 	this->setCentralWidget(m_central_widget);
 	m_left_dock = new QDockWidget(tr("Matrix View"), this);
 	m_left_dock->setAllowedAreas(Qt::LeftDockWidgetArea);
@@ -92,18 +117,162 @@ void MainWindow::on_new()
 	NewWizard wizard(this);
 	if (!wizard.exec())
 		return;
+	
 	int numRows = wizard.field("new.numRows").toInt();
 	int numCols = wizard.field("new.numCols").toInt();
-	std::cout << "numRows = " << numRows << std::endl;
-	std::cout << "numCols = " << numCols << std::endl;
-	std::cout << "Matrix =:\n";
+	int numDiscs = wizard.field("new.numDiscs").toInt();
+	double center = wizard.field("new.center").toDouble();
+	double scale = wizard.field("new.scale").toDouble();
+	m_di.tv = center;
+	m_di.H = scale;
+	m_di.K = numDiscs;
+	m_app.setDiffInfo(m_di);
+	tParser p;
+	m_func_matrix.resize(numRows, numCols, tFunctionPtr(nullptr));
+	std::vector<std::vector<QString> > theMat = wizard.getMatrix();
+	for (int i = 0; i < numRows; ++i)
+		for (int j = 0; j < numCols; ++j)
+			m_func_matrix[i+1][j+1] = p.parse(theMat[i][j].toStdString());
+	std::cout << "Finished parsing\n";
 	for (int i = 1; i <= numRows; ++i)
 	{
 		for (int j = 1; j <= numCols; ++j)
-			std::cout << wizard.getMatrix()->item(i, j)->text().toStdString() << " ";
-
+			std::cout << m_func_matrix[i][j]->toString() << " ";
 		std::cout << std::endl;
 	}
+	clearMatrixInfo();
+	clearCentralWidget();
+	updateMatrixInfo();
+	std::cout << "Updated matrix info\n";
+	updateToolsActions();
+	std::cout << "Updated tools actions\n";
+	updateMatrixWidget();
+	std::cout << "Updated matrix widget\n";
+	updateCentralWidget();
+}
+
+void MainWindow::clearCentralWidget()
+{
+	m_central_widget->clear();
+	//int c = m_central_widget->count();
+	//for (int i = 0; i <= c; ++i)
+	//	m_central_widget->removeTab(i);
+}
+
+void MainWindow::updateCentralWidget()
+{
+	QTableWidget* table = new QTableWidget();
+	int index = m_central_widget->addTab(table, "A(t) - Discretes");
+	m_central_widget->setCurrentIndex(index);
+	updateTableWithDiscretes(table, m_matrix_discretes, "A");
+}
+
+void MainWindow::updateTableWithDiscretes(QTableWidget* table, tDiscretes& discretes, const QString& prefix)
+{
+	assert (m_di.K >= 0);
+	int m = discretes[0].getNumRows();
+	int n = discretes[0].getNumCols();
+	int K = m_di.K;
+	if (m_di.K != 0)
+		--K;
+	std::cout << "K = " << K << std::endl;
+	if (K >= 3)
+	{
+		table->setColumnCount(3*std::max(2, n)+2);
+		table->setRowCount((K/3+1)*(1+m)+K/3);
+	}
+	else
+	{
+		table->setColumnCount((K+1)*std::max(2, n)+K);
+		table->setRowCount((1+m)+1);
+	}
+	std::cout << "Num of rows = " << table->rowCount() << std::endl;
+	std::cout << "Num of cols = " << table->columnCount() << std::endl;
+	int index = 0;
+	int col = 0;
+	for (int k = 0; k <= K; ++k)
+	{
+		index = (k/3)*(1+m+1);
+		col = (k % 3)*(1+n);
+		std::cout << "k = " << k << std::endl;
+		std::cout << "index = " << index << std::endl;
+		std::cout << "col = " << col << std::endl;
+		int origCol = col;
+		table->setItem(index, col, new QTableWidgetItem(QString("%1[%2]").arg(prefix).arg(k)));
+		++index;
+		col = origCol;
+		for (int i = 0; i < m; ++i)
+		{
+			for (int j = 0; j < n; ++j)
+				table->setItem(index+i, col+j, new QTableWidgetItem(QString("%1").arg(discretes[k][i+1][j+1])));
+		}
+	}
+	table->resizeRowsToContents();
+	table->resizeColumnsToContents();
+}
+
+void MainWindow::clearMatrixInfo()
+{
+	m_matrix_discretes.clear();
+	m_binv_discretes.clear();
+	m_qinv_discretes.clear();
+	m_bqinv_discretes.clear();
+	m_drazin_recursive.clear();
+	m_drazin_canonical.clear();
+	m_drazin_skeleton.clear();
+}
+
+void MainWindow::updateMatrixInfo()
+{
+	m_app.applyDiffTrans(m_func_matrix, m_matrix_discretes);
+	std::cout << "Got discretes\n";
+	m_rank = m_app.getRank(m_matrix_discretes);
+	std::cout << "r = " << m_rank << std::endl;
+}
+
+void MainWindow::updateToolsActions()
+{
+	m_b_inverse_action->setEnabled(m_app.isBInvertible(m_func_matrix, m_rank));
+	m_q_inverse_action->setEnabled(m_app.isQInvertible(m_func_matrix, m_rank));
+	m_bq_inverse_action->setEnabled(m_app.isBQInvertible(m_func_matrix, m_rank));
+
+	m_drazin_recursive_inverse_action->setEnabled(m_app.isDrazinInvertible(m_func_matrix));
+	m_drazin_skeleton_inverse_action->setEnabled(m_app.isDrazinInvertible(m_func_matrix));
+	m_drazin_canonical_inverse_action->setEnabled(m_app.isDrazinInvertible(m_func_matrix));
+
+	setChecks();
+	m_restore_action->setEnabled(false);
+	m_plot_action->setEnabled(false);
+}
+
+void MainWindow::updateMatrixWidget()
+{
+	int m = m_func_matrix.getNumRows();
+	int n = m_func_matrix.getNumCols();
+	m_matrix_widget->setRowCount(m+8);
+	int index = 0;
+	m_matrix_widget->setColumnCount(std::max(2, n));
+	m_matrix_widget->setItem(index++, 0, new QTableWidgetItem("A(t)"));
+	for (int i = 1; i <= m; ++i)
+		for (int j = 0; j < n; ++j)
+			m_matrix_widget->setItem(i, j, new QTableWidgetItem(QString::fromStdString(m_func_matrix[i][j+1]->toString())));
+	
+	index += m;
+	++index;
+	m_matrix_widget->setItem(index, 0, new QTableWidgetItem("Rank:"));
+	m_matrix_widget->setItem(index, 1, new QTableWidgetItem(QString("%1").arg(m_rank)));
+	++index;
+	m_matrix_widget->setItem(index++, 0, new QTableWidgetItem("Diff. Trans."));
+	m_matrix_widget->setItem(index, 0, new QTableWidgetItem("K:"));
+	m_matrix_widget->setItem(index, 1, new QTableWidgetItem(QString("%1").arg(m_di.K)));
+	++index;
+	m_matrix_widget->setItem(index, 0, new QTableWidgetItem("tv:"));
+	m_matrix_widget->setItem(index, 1, new QTableWidgetItem(QString("%1").arg(m_di.tv)));
+	++index;
+	m_matrix_widget->setItem(index, 0, new QTableWidgetItem("H:"));
+	m_matrix_widget->setItem(index, 1, new QTableWidgetItem(QString("%1").arg(m_di.H)));
+	m_matrix_widget->resizeRowsToContents();
+	m_matrix_widget->resizeColumnsToContents();
 }
 
 void MainWindow::on_open()
@@ -200,38 +369,236 @@ void MainWindow::createToolsMenuActions()
 
 void MainWindow::on_b_inverse()
 {
+	m_app.getBInverse(m_matrix_discretes, m_rank, m_binv_discretes);
+	QTableWidget* table = new QTableWidget();
+	int index = m_central_widget->addTab(table, "(B)-Inverse");
+	m_central_widget->setCurrentIndex(index);
+	updateTableWithDiscretes(table, m_binv_discretes, "Binv");
+	m_restore_action->setEnabled(true);
 }
 
 void MainWindow::on_q_inverse()
 {
+	m_app.getQInverse(m_matrix_discretes, m_rank, m_qinv_discretes);
+	QTableWidget* table = new QTableWidget();
+	int index = m_central_widget->addTab(table, "(Q)-Inverse");
+	m_central_widget->setCurrentIndex(index);
+	updateTableWithDiscretes(table, m_qinv_discretes, "Qinv");
+	m_restore_action->setEnabled(true);
 }
 
 void MainWindow::on_bq_inverse()
 {
+	m_app.getBQInverse(m_matrix_discretes, m_bqinv_discretes);
+	QTableWidget* table = new QTableWidget();
+	int index = m_central_widget->addTab(table, "(B, Q)-Inverse");
+	m_central_widget->setCurrentIndex(index);
+	updateTableWithDiscretes(table, m_bqinv_discretes, "BQinv");
+	m_restore_action->setEnabled(true);
 }
 
 void MainWindow::on_check_gen()
 {
+	bool ok = true;
+	if (m_binv_discretes.size() != 0)
+	{
+		if(!m_app.checkB_Q_BQ_Inverse(m_matrix_discretes, m_binv_discretes, m_di.K>0? m_di.K-1:0))
+		{
+			ok = false;
+			QMessageBox::critical(this, QString("Check B-inverse"), tr("Main equality isn't held"), QMessageBox::Ok);
+
+		}
+	}
+
+	if (m_qinv_discretes.size() != 0)
+	{
+		if(!m_app.checkB_Q_BQ_Inverse(m_matrix_discretes, m_qinv_discretes, m_di.K>0? m_di.K-1:0))
+		{
+			ok = false;
+			QMessageBox::critical(this, QString("Check Q-inverse"), tr("Main equality isn't held"), QMessageBox::Ok);
+
+		}
+	}
+
+	if (m_bqinv_discretes.size() != 0)
+	{
+		if(!m_app.checkB_Q_BQ_Inverse(m_matrix_discretes, m_bqinv_discretes, m_di.K>0? m_di.K-1:0))
+		{
+			ok = false;
+			QMessageBox::critical(this, QString("Check (B,Q)-inverse"), tr("Main equality isn't held"), QMessageBox::Ok);
+
+		}
+	}
+
+	if (ok)
+	{
+		QMessageBox::information(this, QString("Checks"), tr("Checks for all calculated generalized inverses passed successfully"), QMessageBox::Ok);
+	}
 }
+
 
 void MainWindow::on_drazin_recursive()
 {
+	m_app.getDrazinInverseRecursive(m_matrix_discretes, m_drazin_recursive);
+	QTableWidget* table = new QTableWidget();
+	int index = m_central_widget->addTab(table, "Drazin Inverse Recursive");
+	m_central_widget->setCurrentIndex(index);
+	updateTableWithDiscretes(table, m_drazin_recursive, "AD");
+	m_restore_action->setEnabled(true);
 }
 
 void MainWindow::on_drazin_skeleton()
 {
+	m_app.getDrazinInverseRecursive(m_matrix_discretes, m_drazin_skeleton);
+	QTableWidget* table = new QTableWidget();
+	int index = m_central_widget->addTab(table, "Drazin Inverse Skeleton");
+	m_central_widget->setCurrentIndex(index);
+	updateTableWithDiscretes(table, m_drazin_skeleton, "AD");
+	m_restore_action->setEnabled(true);
 }
 
 void MainWindow::on_drazin_canonical()
 {
+	m_app.getDrazinInverseRecursive(m_matrix_discretes, m_drazin_canonical);
+	QTableWidget* table = new QTableWidget();
+	int index = m_central_widget->addTab(table, "Drazin Inverse Canonical");
+	m_central_widget->setCurrentIndex(index);
+	updateTableWithDiscretes(table, m_drazin_canonical, "AD");
+	m_restore_action->setEnabled(true);
 }
 
 void MainWindow::on_check_drazin()
 {
+	bool ok = true;
+	if (m_drazin_recursive.size() != 0)
+	{
+		if(!m_app.checkDrazinInverse(m_matrix_discretes, m_drazin_recursive, m_di.K>0? m_di.K-1:0))
+		{
+			ok = false;
+			QMessageBox::critical(this, QString("Check Drazin-recursive"), tr("Main equalities aren't held"), QMessageBox::Ok);
+
+		}
+	}
+
+	if (m_drazin_skeleton.size() != 0)
+	{
+		if(!m_app.checkDrazinInverse(m_matrix_discretes, m_drazin_skeleton, m_di.K>0? m_di.K-1:0))
+		{
+			ok = false;
+			QMessageBox::critical(this, QString("Check Drazin-skeleton"), tr("Main equalities aren't held"), QMessageBox::Ok);
+
+		}
+	}
+
+	if (m_drazin_canonical.size() != 0)
+	{
+		if(!m_app.checkDrazinInverse(m_matrix_discretes, m_drazin_canonical, m_di.K>0? m_di.K-1:0))
+		{
+			ok = false;
+			QMessageBox::critical(this, QString("Check Drazin-canonical"), tr("Main equalities aren't held"), QMessageBox::Ok);
+
+		}
+	}
+
+	if (ok)
+	{
+		QMessageBox::information(this, QString("Checks"), tr("Checks for all calculated Drazn inverses passed successfully"), QMessageBox::Ok);
+	}
 }
 
 void MainWindow::on_restore()
 {
+	RestoreWizard wizard(this,
+		(m_binv_discretes.size() != 0),
+		(m_qinv_discretes.size() != 0),
+		(m_bqinv_discretes.size() != 0),
+		(m_drazin_recursive.size() != 0),
+		(m_drazin_skeleton.size() != 0),
+		(m_drazin_canonical.size() != 0)
+		);
+	if (!wizard.exec())
+		return;
+	is_binv = wizard.field("restore.b").toBool();
+	is_qinv = wizard.field("restore.q").toBool();
+	is_bqinv = wizard.field("restore.bq").toBool();
+	is_drazin_recursive = wizard.field("restore.dr").toBool();
+	is_drazin_skeleton = wizard.field("restore.ds").toBool();
+	is_drazin_canonical = wizard.field("restore.dc").toBool();
+	bool taylor_single = wizard.field("restore.taylor.single").toBool();
+	bool pade = wizard.field("restore.pade").toBool();
+	if (pade)
+	{
+		m_pade_m = wizard.field("restore.pade.m").toInt();
+		m_pade_n = wizard.field("restore.pade.n").toInt();
+	}
+
+	if (is_binv)
+		restore(m_binv_discretes, pade ? eRestorePade : (taylor_single ? eRestoreTaylorSingle : eRestoreTaylorMulti), "(B)-Inverse Restored", m_binv_restore);
+
+	if (is_qinv)
+		restore(m_qinv_discretes, pade ? eRestorePade : (taylor_single ? eRestoreTaylorSingle : eRestoreTaylorMulti), "(Q)-Inverse Restored", m_qinv_restore);
+
+	if (is_bqinv)
+		restore(m_bqinv_discretes, pade ? eRestorePade : (taylor_single ? eRestoreTaylorSingle : eRestoreTaylorMulti), "(B,Q)-Inverse Restored", m_bqinv_restore);
+
+	if (is_drazin_recursive)
+		restore(m_drazin_recursive, pade ? eRestorePade : (taylor_single ? eRestoreTaylorSingle : eRestoreTaylorMulti), "Drazin Recursive Inverse Restored", m_drazin_recursive_restore);
+
+	if (is_drazin_skeleton)
+		restore(m_drazin_skeleton, pade ? eRestorePade : (taylor_single ? eRestoreTaylorSingle : eRestoreTaylorMulti), "Drazin Skeleton Inverse Restored", m_drazin_skeleton_restore);
+
+	if (is_drazin_canonical)
+		restore(m_drazin_canonical, pade ? eRestorePade : (taylor_single ? eRestoreTaylorSingle : eRestoreTaylorMulti), "Drazin Canonical Inverse Restored", m_drazin_canonical_restore);
+	
+	m_plot_action->setEnabled(true);
+}
+
+void MainWindow::restore(const tDiscretes& discretes, eRestType rt, const QString& title, tMatrix& origMatrix)
+{
+	switch (rt)
+	{
+	case eRestorePade:
+		return restorePade(discretes, title, origMatrix);
+	case eRestoreTaylorSingle:
+		return restoreTaylorSingle(discretes, title, origMatrix);
+	case eRestoreTaylorMulti:
+		return restoreTaylorMulti(discretes, title, origMatrix);
+	default:
+		assert (! "Unknown restoration type");
+	}
+}
+
+void MainWindow::restorePade(const tDiscretes& discretes, const QString& title, tMatrix& origMatrix)
+{
+}
+
+void MainWindow::restoreTaylorSingle(const tDiscretes& discretes, const QString& title, tMatrix& origMatrix)
+{
+	assert(m_di.K >= 0);
+	origMatrix.resize(discretes[0].getNumCols(), discretes[0].getNumRows(), tFunctionPtr(nullptr));
+	m_app.restoreTaylorSingle(discretes, origMatrix, m_di.K > 0 ? m_di.K-1 : 0);
+	QTableWidget* table = new QTableWidget();
+	int index = m_central_widget->addTab(table, title);
+	m_central_widget->setCurrentIndex(index);
+	updateTableWithFuncMatrix(table, origMatrix);
+}
+
+void MainWindow::restoreTaylorMulti(const tDiscretes& discretes, const QString& title, tMatrix& origMatrix)
+{
+}
+
+void MainWindow::updateTableWithFuncMatrix(QTableWidget* table, const tMatrix& mat)
+{
+	int m = mat.getNumRows();
+	int n = mat.getNumCols();
+	table->setRowCount(m);
+	table->setColumnCount(n);
+	for (int i = 0; i < m; ++i)
+		for (int j = 0; j < n; ++j)
+			table->setItem(i, j,
+				new QTableWidgetItem(QString::fromStdString(mat[i+1][j+1]->toString())));
+	table->resizeRowsToContents();
+	table->resizeColumnsToContents();
 }
 
 void MainWindow::on_compare()
@@ -240,6 +607,42 @@ void MainWindow::on_compare()
 
 void MainWindow::on_plot()
 {
+	PlotWizard wizard(this, is_binv, is_qinv, is_bqinv,
+				is_drazin_recursive, is_drazin_skeleton, is_drazin_canonical);
+	if (!wizard.exec())
+		return;
+	double xbeg = wizard.field("plot.xbeg").toDouble();
+	double xend = wizard.field("plot.xend").toDouble();
+	if (wizard.field("plot.b").toBool())
+	{
+		plot(m_binv_restore, xbeg, xend, "(Q)-inverse Restored");
+	}
+	else if (wizard.field("plot.q").toBool())
+	{
+		plot(m_qinv_restore, xbeg, xend, "(B)-inverse Restored");
+	}
+	else if (wizard.field("plot.bq").toBool())
+	{
+		plot(m_bqinv_restore, xbeg, xend, "(B, Q)-Inverse Restored");
+	}
+	else if (wizard.field("plot.dr").toBool())
+	{
+		plot(m_drazin_recursive_restore, xbeg, xend, "Drazin Recursive Inverse Restored");
+	}
+	else if (wizard.field("plot.ds").toBool())
+	{
+		plot(m_drazin_skeleton_restore, xbeg, xend, "Drazin Skeleton Inverse Restored");
+	}
+	else if (wizard.field("plot.dc").toBool())
+	{
+		plot(m_drazin_canonical_restore, xbeg, xend, "Drazin Canonical Inverse Restored");
+	}
+}
+
+void MainWindow::plot(const tMatrix& theMatrix, double begin, double end, const QString& title)
+{
+	Plotter plotter = new Plotter(this, theMatrix, begin, end, title);
+	plotter->show();
 }
 
 void MainWindow::on_options()

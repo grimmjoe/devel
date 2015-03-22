@@ -130,6 +130,17 @@ namespace core
 			std::copy(r.begin(), r.end(), std::back_inserter(mMatrix[1]));
 		}
 
+		void resize(int m, int n, const E& e = E())
+		{
+			mNumRows = m;
+			mNumCols = n;
+			mMatrix.resize(m);
+			for (int i = 1; i <= mNumRows; ++i)
+			{
+				mMatrix[i].resize(mNumCols, e);
+			}
+		}
+
 		typedef matrix<E> tMatrixRow;
 		typedef matrix<E> tMatrixColumn;
 

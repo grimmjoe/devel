@@ -78,7 +78,12 @@ namespace core
 		virtual std::string toString() const
 		{
 			std::stringstream ss;
-			ss << m_base << strings::sMult << "(" << m_op2->toString() << ")";
+			if (m_base == 1)
+				ss << "(" << m_op2->toString() << ")";
+			else if (m_base == 0)
+				return "";
+			else
+				ss << m_base << strings::sMult << "(" << m_op2->toString() << ")";
 			return ss.str();
 		}
 		virtual tFunctionPtr derivative(int num)
