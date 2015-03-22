@@ -16,9 +16,11 @@ INCLUDEPATH += . \
 # Input
 HEADERS += main_window.h \
            wizards.h \
+		   plotter.h \
            qcustomplot/qcustomplot.h
 SOURCES += main.cpp \
            main_window.cpp \
            wizards.cpp \
+           plotter.cpp \
            qcustomplot/qcustomplot.cpp
 RESOURCES += gui.qrc

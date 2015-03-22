@@ -1,5 +1,6 @@
 #include "main_window.h"
 #include "wizards.h"
+#include "plotter.h"
 
 #include <QtGui>
 
@@ -617,23 +618,23 @@ void MainWindow::on_plot()
 	{
 		plot(m_binv_restore, xbeg, xend, "(Q)-inverse Restored");
 	}
-	else if (wizard.field("plot.q").toBool())
+	if (wizard.field("plot.q").toBool())
 	{
 		plot(m_qinv_restore, xbeg, xend, "(B)-inverse Restored");
 	}
-	else if (wizard.field("plot.bq").toBool())
+	if (wizard.field("plot.bq").toBool())
 	{
 		plot(m_bqinv_restore, xbeg, xend, "(B, Q)-Inverse Restored");
 	}
-	else if (wizard.field("plot.dr").toBool())
+	if (wizard.field("plot.dr").toBool())
 	{
 		plot(m_drazin_recursive_restore, xbeg, xend, "Drazin Recursive Inverse Restored");
 	}
-	else if (wizard.field("plot.ds").toBool())
+	if (wizard.field("plot.ds").toBool())
 	{
 		plot(m_drazin_skeleton_restore, xbeg, xend, "Drazin Skeleton Inverse Restored");
 	}
-	else if (wizard.field("plot.dc").toBool())
+	if (wizard.field("plot.dc").toBool())
 	{
 		plot(m_drazin_canonical_restore, xbeg, xend, "Drazin Canonical Inverse Restored");
 	}
@@ -641,8 +642,11 @@ void MainWindow::on_plot()
 
 void MainWindow::plot(const tMatrix& theMatrix, double begin, double end, const QString& title)
 {
-	Plotter plotter = new Plotter(this, theMatrix, begin, end, title);
+	std::cout << "Creating the plotter\n";
+	Plotter* plotter = new Plotter(0, theMatrix, begin, end, title);
+	std::cout << "Created the plotter\n";
 	plotter->show();
+	std::cout << "Called show()\n";
 }
 
 void MainWindow::on_options()
