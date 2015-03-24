@@ -248,6 +248,7 @@ void MainWindow::updateToolsActions()
 
 void MainWindow::updateMatrixWidget()
 {
+	m_matrix_widget->clear();
 	int m = m_func_matrix.getNumRows();
 	int n = m_func_matrix.getNumCols();
 	m_matrix_widget->setRowCount(m+8);
