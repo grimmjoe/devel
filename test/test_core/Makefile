@@ -35,6 +35,9 @@ OBJ_FILES9=$(CPP_FILES9:.cpp=.o)
 CPP_FILES10=src/drazin_canonical.cpp
 OBJ_FILES10=$(CPP_FILES10:.cpp=.o)
 
+CPP_FILES11=src/qreal_inverse.cpp
+OBJ_FILES11=$(CPP_FILES11:.cpp=.o)
+
 EXE:= bin/matrix_inverse
 EXE2:=bin/expr_parser
 EXE3:=bin/deriv_matrix
@@ -45,6 +48,7 @@ EXE7:=bin/bq_inverse
 EXE8:=bin/drazin_recursive
 EXE9:=bin/drazin_skeleton
 EXE10:=bin/drazin_canonical
+EXE11:=bin/qreal_inverse
 
 ##debug: CXXFLAGS += -DDEBUG -g
 ##debug: default
@@ -53,7 +57,7 @@ EXE10:=bin/drazin_canonical
 ##debug: CXXFLAGS:=$(filter-out -O2,$(CXXFLAGS))
 ##debug: $(EXE10)
 
-default: $(EXE) $(EXE2) $(EXE3) $(EXE4) $(EXE5) $(EXE6) $(EXE7) $(EXE8) $(EXE9) $(EXE10)
+default: $(EXE) $(EXE2) $(EXE3) $(EXE4) $(EXE5) $(EXE6) $(EXE7) $(EXE8) $(EXE9) $(EXE10) $(EXE11)
 
 .PHONY: directories
 
@@ -87,6 +91,9 @@ $(EXE9): directories $(OBJ_FILES9)
 $(EXE10): directories $(OBJ_FILES10)
 	$(CXX) $(LD_FLAGS)  -o $@ $(OBJ_FILES10)
 
+$(EXE11): directories $(OBJ_FILES11)
+	$(CXX) $(LD_FLAGS)  -o $@ $(OBJ_FILES11)
+
 .cpp.o:
 	$(CXX) $(CXXFLAGS) $(INCLUDE) -c $< -o $@
 
@@ -115,3 +122,4 @@ clean:
 -include $(OBJ_FILES8:.o=.d)
 -include $(OBJ_FILES9:.o=.d)
 -include $(OBJ_FILES10:.o=.d)
+-include $(OBJ_FILES11:.o=.d)

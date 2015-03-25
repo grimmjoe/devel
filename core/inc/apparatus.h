@@ -190,6 +190,21 @@ namespace core
 		bool restoreTaylorSingle(const tMatrixDiscretes& theDiscretes, tFuncMatrix& out, int K);
 
 		//
+		/// Restore the original @a out from the discretes @a theDiscretes with reverse Pade
+		/// transformations
+		//
+		bool restorePade(const tMatrixDiscretes& theDiscretes, int m, int n, tFuncMatrix& out)
+		{
+			return this->restorePade(theDiscretes, m, n, out, m_di.K);
+		}
+
+		//
+		/// Restore the original @a out from the discretes @a theDiscretes with reverse Pade
+		/// transformations
+		//
+		bool restorePade(const tMatrixDiscretes& theDiscretes, int m, int n, tFuncMatrix& out, int K);
+
+		//
 		/// Get LU decomposition of the matrix
 		//
 		bool getLU(const tFuncMatrix& A, tMatrixDiscretes& l, tMatrixDiscretes& u);
@@ -1510,7 +1525,7 @@ bool core::apparatus<T, algo>::getQInverse(const tFuncMatrix& A, tMatrixDiscrete
 	tMatrixDiscretes discretes;
 	this->applyDiffTrans(A, discretes);
 	int r = this->getRank(discretes);
-	return this->getBInverse(discretes, r, binv);
+	return this->getQInverse(discretes, r, binv);
 }
 
 template <class T, int algo>
@@ -1518,7 +1533,7 @@ bool core::apparatus<T, algo>::getQInverse(const tFuncMatrix& A, int r, tMatrixD
 {
 	tMatrixDiscretes discretes;
 	this->applyDiffTrans(A, discretes);
-	return this->getBInverse(discretes, r, binv);
+	return this->getQInverse(discretes, r, binv);
 }
 
 template <class T, int algo>
@@ -1526,7 +1541,7 @@ bool core::apparatus<T, algo>::getQInverse(const tMatrixDiscretes& A, int r, tMa
 {
 	tMatrixDiscretes Q;
 	this->chooseQ(A, r, Q);
-	return this->getBInverse(A, r, Q, binv);
+	return this->getQInverse(A, r, Q, binv);
 }
 
 template <class T, int algo>
@@ -2108,6 +2123,77 @@ bool core::apparatus<T, algo>::restoreTaylorSingle(const tMatrixDiscretes& theDi
 		}
 	}
 
+	return true;
+}
+
+template <class T, int algo>
+bool core::apparatus<T, algo>::restorePade(const tMatrixDiscretes& theDiscretes, int m, int n, tFuncMatrix& out, int K)
+{
+	assert (m <= n);
+	assert (m+n <= K);
+	for (int i = 1; i <= theDiscretes[0].getNumRows(); ++i)
+	{
+		for (int j = 1; j <= theDiscretes[0].getNumCols(); ++j)
+		{
+			tMatrixDiscretes d(m_di.K+1, tMatrixDiscrete(n, n, 0));
+			int dk = m;
+			for (int di = 1; di <= n; ++di)
+			{
+				dk = m + di-1;
+				for (int dj = 1; dj <= n; ++dj)
+				{
+					d[0][di][dj] = theDiscretes[dk--][i][j];
+				}
+			}
+			std::cout << "Got the left for b-calculation\n";
+			tMatrixDiscretes inv;
+			int r = this->getRank(d);
+			std::cout << "rank = " << r << std::endl;
+			if (this->isInvertible(d, r))
+			{
+			try
+			{
+				this->getInverse(d, n, inv);
+			}
+			catch (...)
+			{
+				out[i][j] = tFunctionPtr(new const_function<T>(0));
+				continue;
+			}
+			}
+			else if (this->isBInvertible(d, r))
+				this->getBInverse(d, r, inv);
+			else if (this->isQInvertible(d, r))
+				this->getQInverse(d, r, inv);
+			else if (this->isBQInvertible(d, r))
+				this->getBQInverse(d, inv);
+			std::cout << "Got the inverse = " << inv[0] << "\n";
+			tMatrixDiscrete right(n, 1, 0);
+			for (int ri = 1; ri <= n; ++ri)
+				right[ri][1] = -theDiscretes[m+ri][i][j];
+			std::cout << "Got the right\n";
+			tMatrixDiscrete b = inv[0]*right;
+			std::cout << "B = " << b << std::endl;
+
+			tMatrixDiscrete left(m+1, m+1, 0);
+			for (int li = 1; li <= m+1; ++li)
+			{
+				left[li][li] = 1;
+				int bi = li-1;
+				for (int lj = 1; lj < li; ++lj)
+				{
+					left[li][lj] = b[bi--][1];
+				}
+			}
+			tMatrixDiscrete aright(m+1, 1, 0);
+			for (int ai = 1; ai <= m+1; ++ai)
+			{
+				aright[ai][1] = theDiscretes[ai-1][i][j];
+			}
+			tMatrixDiscrete a = left*aright;
+			std::cout << "A = " << a << std::endl;
+		}
+	}
 	return true;
 }
 
