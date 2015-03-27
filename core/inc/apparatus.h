@@ -1630,6 +1630,11 @@ bool core::apparatus<T, algo>::getInverseLowerTriangular(const tMatrixDiscretes&
 		throw algoException("Inversion: the matrix is not invertible");
 	assert (m_di.K >= 0);
 	const int n = L[0].getNumRows();
+	//for (int i = 1; i <= n; ++i)
+	//{
+	//	if (L[0][i][i] == 0)
+	//		throw algoException("Inversion: the L Matrix is not invertible");
+	//}
 	L1.resize(m_di.K+1, tMatrixDiscrete(n, r, 0));
 	
 	int K = m_di.K;
@@ -2146,27 +2151,31 @@ bool core::apparatus<T, algo>::restorePade(const tMatrixDiscretes& theDiscretes,
 				}
 			}
 			std::cout << "Got the left for b-calculation\n";
+			std::cout << "D:\n";
+			std::copy(d.begin(), d.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
 			tMatrixDiscretes inv;
-			int r = this->getRank(d);
-			std::cout << "rank = " << r << std::endl;
-			if (this->isInvertible(d, r))
-			{
-			try
-			{
-				this->getInverse(d, n, inv);
-			}
-			catch (...)
-			{
-				out[i][j] = tFunctionPtr(new const_function<T>(0));
-				continue;
-			}
-			}
-			else if (this->isBInvertible(d, r))
-				this->getBInverse(d, r, inv);
-			else if (this->isQInvertible(d, r))
-				this->getQInverse(d, r, inv);
-			else if (this->isBQInvertible(d, r))
-				this->getBQInverse(d, inv);
+			this->getInverse(d, n, inv);
+			//this->getBQInverse(d, inv);
+			//int r = this->getRank(d);
+			//std::cout << "rank = " << r << std::endl;
+			//if (this->isInvertible(d, r))
+			//{
+			//try
+			//{
+			//	this->getInverse(d, n, inv);
+			//}
+			//catch (...)
+			//{
+			//	out[i][j] = tFunctionPtr(new const_function<T>(0));
+			//	continue;
+			//}
+			//}
+			//else if (this->isBInvertible(d, r))
+			//	this->getBInverse(d, r, inv);
+			//else if (this->isQInvertible(d, r))
+			//	this->getQInverse(d, r, inv);
+			//else if (this->isBQInvertible(d, r))
+			//	this->getBQInverse(d, inv);
 			std::cout << "Got the inverse = " << inv[0] << "\n";
 			tMatrixDiscrete right(n, 1, 0);
 			for (int ri = 1; ri <= n; ++ri)
