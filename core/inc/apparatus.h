@@ -798,6 +798,9 @@ bool core::apparatus<T, algo>::getDrazinInverseRecursive(const tMatrixDiscretes&
 	std::cout << "Entering the loop\n";
 	while (!toStop)
 	{
+		std::cout << "j = " << j << std::endl;
+		std::cout << "S[" << j-1 << "]:\n";
+		std::copy(S[j-1].begin(), S[j-1].end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
 		p = 0;
 		tMatrixDiscretes AS;
 		this->multDiscretes(A, S[j-1], AS);
@@ -806,18 +809,19 @@ bool core::apparatus<T, algo>::getDrazinInverseRecursive(const tMatrixDiscretes&
 		for (int k = 0; k <= m_di.K; ++k)
 		{
 			betta[n-j][k] = (-1./j) * trace(AS[k]);
+			std::cout << "Trace(AS[" << k << "]=" << trace(AS[k]) << std::endl;
 			if (this->is_equal(betta[n-j][k], 0))
 				betta[n-j][k] = 0;
 		}
 		std::cout << "Calculated bettas, now calculating S\n";
 		std::cout << "betta[" << n-j << "]:\n";
 		std::copy(betta[n-j].begin(), betta[n-j].end(), std::ostream_iterator<T>(std::cout, " "));
+		std::cout << std::endl;
 		this->multDiscretes(A, S[j-1], S[j]);
 		for (int k = 0; k <= m_di.K; ++k)
 		{
 			if (!this->is_equal(betta[n-j][k], 0))
 				S[j][k] += betta[n-j][k]*I;
-			std::cout << "Was not null, checking the matrix\n";
 			if (!this->is_equal(S[j][k], 0))
 				p = -1;
 		}
