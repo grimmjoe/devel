@@ -42,9 +42,11 @@ int main(int argc, char* argv[])
 	int m, n;
 	fin >> m >> n;
 	int k;
-	int tv;
+	double tv;
 	double epsilon;
 	fin >> k >> tv >> epsilon;
+	char pade_taylor;
+	fin >> pade_taylor;
 	tMatrix theMatrix(m, n, tFunctionPtr(nullptr));
 	core::parser<double> p;
 	for (int i = 1; i <= m; ++i)
@@ -73,7 +75,10 @@ int main(int argc, char* argv[])
 	std::copy(theDiscretes.begin(), theDiscretes.end(), std::ostream_iterator<tDiscrete>(std::cout, "\n"));
 	std::cout << "\nRestoring the original\n";
 	tMatrix origMatrix(n, m, tFunctionPtr(nullptr));
-	app.restoreTaylorSingle(theDiscretes, origMatrix);
+	if (pade_taylor == 'p')
+		app.restorePade(theDiscretes, 4, 5, origMatrix, k-1);
+	else
+		app.restoreTaylorSingle(theDiscretes, origMatrix, k-1);
 	std::cout << "The original:\n";
 	printFuncMatrix(origMatrix);
 

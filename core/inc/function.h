@@ -18,6 +18,9 @@ namespace core
 		virtual tFunctionPtr derivative(int num) = 0;
 		virtual void optimize() = 0;
 		virtual tFunctionPtr clone() = 0;
+
+		virtual ~function()
+		{}
 	};
 }
 

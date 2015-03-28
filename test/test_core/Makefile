@@ -38,6 +38,12 @@ OBJ_FILES10=$(CPP_FILES10:.cpp=.o)
 CPP_FILES11=src/qreal_inverse.cpp
 OBJ_FILES11=$(CPP_FILES11:.cpp=.o)
 
+CPP_FILES12=src/breal_inverse.cpp
+OBJ_FILES12=$(CPP_FILES12:.cpp=.o)
+
+CPP_FILES13=src/qmulti_inverse.cpp
+OBJ_FILES13=$(CPP_FILES13:.cpp=.o)
+
 EXE:= bin/matrix_inverse
 EXE2:=bin/expr_parser
 EXE3:=bin/deriv_matrix
@@ -49,6 +55,8 @@ EXE8:=bin/drazin_recursive
 EXE9:=bin/drazin_skeleton
 EXE10:=bin/drazin_canonical
 EXE11:=bin/qreal_inverse
+EXE12:=bin/breal_inverse
+EXE13:=bin/qmulti_inverse
 
 ##debug: CXXFLAGS += -DDEBUG -g
 ##debug: default
@@ -57,7 +65,7 @@ EXE11:=bin/qreal_inverse
 ##debug: CXXFLAGS:=$(filter-out -O2,$(CXXFLAGS))
 ##debug: $(EXE10)
 
-default: $(EXE) $(EXE2) $(EXE3) $(EXE4) $(EXE5) $(EXE6) $(EXE7) $(EXE8) $(EXE9) $(EXE10) $(EXE11)
+default: $(EXE) $(EXE2) $(EXE3) $(EXE4) $(EXE5) $(EXE6) $(EXE7) $(EXE8) $(EXE9) $(EXE10) $(EXE11) $(EXE12) $(EXE13)
 
 .PHONY: directories
 
@@ -94,6 +102,12 @@ $(EXE10): directories $(OBJ_FILES10)
 $(EXE11): directories $(OBJ_FILES11)
 	$(CXX) $(LD_FLAGS)  -o $@ $(OBJ_FILES11)
 
+$(EXE12): directories $(OBJ_FILES12)
+	$(CXX) $(LD_FLAGS)  -o $@ $(OBJ_FILES12)
+
+$(EXE13): directories $(OBJ_FILES13)
+	$(CXX) $(LD_FLAGS)  -o $@ $(OBJ_FILES13)
+
 .cpp.o:
 	$(CXX) $(CXXFLAGS) $(INCLUDE) -c $< -o $@
 
@@ -123,3 +137,5 @@ clean:
 -include $(OBJ_FILES9:.o=.d)
 -include $(OBJ_FILES10:.o=.d)
 -include $(OBJ_FILES11:.o=.d)
+-include $(OBJ_FILES12:.o=.d)
+-include $(OBJ_FILES13:.o=.d)

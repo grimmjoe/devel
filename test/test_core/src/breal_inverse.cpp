@@ -43,9 +43,8 @@ int main(int argc, char* argv[])
 	fin >> m >> n;
 	int k;
 	double tv;
-	fin >> k >> tv;
 	double epsilon;
-	fin >> epsilon;
+	fin >> k >> tv >> epsilon;
 	tMatrix theMatrix(m, n, tFunctionPtr(nullptr));
 	core::parser<double> p;
 	for (int i = 1; i <= m; ++i)
@@ -68,20 +67,17 @@ int main(int argc, char* argv[])
 	tDiscretes theDiscretes;
 	tDiscretes theMatrixDiscretes;
 	app.applyDiffTrans(theMatrix, theMatrixDiscretes);
-	std::cout << "The matrix discretes:\n";
-	std::copy(theMatrixDiscretes.begin(), theMatrixDiscretes.end(), std::ostream_iterator<tDiscrete>(std::cout, "\n"));
-	app.getDrazinInverseRecursive(theMatrixDiscretes, theDiscretes);
+	//app.getQInverse(theMatrixDiscretes, theDiscretes);
+	app.getBInverse(theMatrix, theDiscretes);
 	std::cout << "\nDiscretes:\n";
 	std::copy(theDiscretes.begin(), theDiscretes.end(), std::ostream_iterator<tDiscrete>(std::cout, "\n"));
 	std::cout << "\nRestoring the original\n";
 	tMatrix origMatrix(n, m, tFunctionPtr(nullptr));
-	//app.restoreTaylorSingle(theDiscretes, origMatrix);
-	app.restorePade(theDiscretes, 5, 6, origMatrix);
+	app.restoreTaylorSingle(theDiscretes, origMatrix, k-1);
 	std::cout << "The original:\n";
 	printFuncMatrix(origMatrix);
 
-
-	if (app.checkDrazinInverse(theMatrixDiscretes, theDiscretes, di.K>0? di.K-1:0))
+	if (app.checkB_Q_BQ_Inverse(theMatrixDiscretes, theDiscretes, di.K>0? di.K-1:0))
 		std::cout << "The calculation is correct" << std::endl;
 	else
 		std::cout << "The calculation is NOT CORRECT" << std::endl;

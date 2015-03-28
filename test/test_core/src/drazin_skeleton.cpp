@@ -42,7 +42,7 @@ int main(int argc, char* argv[])
 	int m, n;
 	fin >> m >> n;
 	int k;
-	int tv;
+	double tv;
 	fin >> k >> tv;
 	double epsilon;
 	fin >> epsilon;

@@ -1,0 +1,6 @@
+5 5 4 0 0.000001
+t+1 t t t t+1
+t t-1 t t t
+t t t+1  t t
+t t t t-1 t
+t+1 t t t t+1
