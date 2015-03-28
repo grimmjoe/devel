@@ -44,12 +44,18 @@ namespace core
 			if (num == 0)
 				return this->clone();
 			if (num == 1)
+			{
+				if (m_power == 0)
+					return tFunctionPtr(new const_function<T>(0));
+				if (m_power == 1)
+					return m_base->derivative(1);
 				return tFunctionPtr(new multiply<T>(
 					tFunctionPtr(new multiply<T, eMultNum>(
 								m_power,
 								tFunctionPtr(new power<T>(m_base, m_power-1))
 								)),
 							m_base->derivative(1)));
+			}
 			tFunctionPtr thisFunc = this->clone();
 			while (num > 0)
 			{

@@ -348,6 +348,22 @@ namespace core
 	}
 
 	template <class Elem>
+	matrix<Elem> operator/(const matrix<Elem>& mat1, const Elem& e)
+	{
+		const int m = mat1.getNumRows();
+		const int n = mat1.getNumCols();
+		matrix<Elem> result(m, n, 0);
+		for (int i = 1; i <= m; ++i)
+		{
+			for (int j = 1; j <= n; ++j)
+			{
+				result[i][j] = mat1[i][j]/e;
+			}
+		}
+		return result;
+	}
+
+	template <class Elem>
 	bool operator==(const matrix<Elem>& mat1, const matrix<Elem>& mat2)
 	{
 		int m1 = mat1.getNumRows();

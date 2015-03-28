@@ -8,6 +8,7 @@
 #include "add.h"
 #include "subtract.h"
 #include "multiply.h"
+#include "divide.h"
 #include "matrix.h"
 #include "comparator.h"
 #include <vector>
@@ -228,6 +229,8 @@ namespace core
 		/// Get the rank of the matrix
 		//
 		int getRank(const tMatrixDiscretes& A) const;
+
+		bool getRankDecomposition(const tMatrixDiscrete& A, int& r, tMatrixDiscrete& C, tMatrixDiscrete& F);
 	
 	//// Inverses
 	public:
@@ -690,23 +693,35 @@ int core::apparatus<T, algo>::impl_getRank(const tMatrixDiscrete& A, tMatrixDisc
 			T scalar = this->getScalarProduct(aj, d[i].first);
 			if (scalar == 0)
 				continue;
+			//d[j].first -= (scalar*d[i].first)/d[i].second;
 			d[j].first -= (scalar/d[i].second)*d[i].first;
 		}
 		d[j].second = this->getNormNonSqrt(d[j].first);
-		if (this->is_equal(d[j].second, 0))
-		{
-			d[j].second = 0;
-			d[j].first.set(0);
-		}
+		//if (this->is_equal(d[j].second, 0))
+		//{
+		//	d[j].second = 0;
+		//	d[j].first.set(0);
+		//}
 	}
 	std::vector<int> theIndices(n, 0);
 	int r = 0;
 	int nn = n;
 	for (int i = 1; i <= d.size(); ++i)
 	{
-		if (!is_equal(d[i].second, 0))
-			theIndices[r++] = i;
-		else
+		//if (!is_equal(d[i].second, 0))
+		//	theIndices[r++] = i;
+		//else
+		//	theIndices[--nn] = i;
+		int j = 1;
+		for (; j <= n; ++j)
+		{
+			if (!is_equal(d[i].first[j], 0))
+			{
+				theIndices[r++] = i;
+				break;
+			}
+		}
+		if (j > n)
 			theIndices[--nn] = i;
 	}
 	std::cout << "Orthogonalization was:\n";
@@ -732,10 +747,10 @@ int core::apparatus<T, algo>::impl_getRank(const tMatrixDiscrete& A, tMatrixDisc
 	//	);
 	
 	std::cout << "The rank is " << r << std::endl;
-	std::cout << "The indices:\n";
-	std::copy(theIndices.begin(), theIndices.end(), std::ostream_iterator<int>(std::cout, " "));
-	std::cout << "The permutation matrix is:\n";
-	std::cout << permMatrix[0] << std::endl;
+	//std::cout << "The indices:\n";
+	//std::copy(theIndices.begin(), theIndices.end(), std::ostream_iterator<int>(std::cout, " "));
+	//std::cout << "The permutation matrix is:\n";
+	//std::cout << permMatrix[0] << std::endl;
 
 	return r;
 }
@@ -901,19 +916,19 @@ bool core::apparatus<T, algo>::getSkeleton(const tMatrixDiscretes& A, tMatrixDis
 			S.push_back(d*permMatrix[0]);
 		}
 		);
-	std::cout << "S:\n";
-	std::copy(S.begin(), S.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
+	//std::cout << "S:\n";
+	//std::copy(S.begin(), S.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
 	tMatrixDiscretes Q;
 	this->chooseQ(S, r, Q);
-	std::cout << "Chose Q as:\n";
-	std::copy(Q.begin(), Q.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
+	//std::cout << "Chose Q as:\n";
+	//std::copy(Q.begin(), Q.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
 	tMatrixDiscretes qinv;
 	this->getQInverse(S, r, Q, qinv);
-	std::cout << "Q-Inverse is:\n";
-	std::copy(qinv.begin(), qinv.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
+	//std::cout << "Q-Inverse is:\n";
+	//std::copy(qinv.begin(), qinv.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
 	this->multDiscretes(qinv, A, R);
-	std::cout << "R is:\n";
-	std::copy(R.begin(), R.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
+	//std::cout << "R is:\n";
+	//std::copy(R.begin(), R.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
 	return true;
 }
 
@@ -1196,13 +1211,15 @@ template <class T, int algo>
 bool core::apparatus<T, algo>::isBQInvertible(const tFuncMatrix& A) const
 {
 	int r = this->getRank(A);
-	return r < std::min(A.getNumRows(), A.getNumCols());
+	return (r < std::min(A.getNumRows(), A.getNumCols()))
+			|| this->isInvertible(A, r);
 }
 
 template <class T, int algo>
 bool core::apparatus<T, algo>::isBQInvertible(const tFuncMatrix& A, int r) const
 {
-	return r < std::min(A.getNumRows(), A.getNumCols());
+	return (r < std::min(A.getNumRows(), A.getNumCols()))
+			|| this->isInvertible(A, r);
 }
 
 
@@ -1210,7 +1227,8 @@ template <class T, int algo>
 bool core::apparatus<T, algo>::isBQInvertible(const tMatrixDiscretes& A, int r) const
 {
 	assert (m_di.K >= 0);
-	return r < std::min(A[0].getNumRows(), A[0].getNumCols());
+	return (r < std::min(A[0].getNumRows(), A[0].getNumCols()))
+			|| this->isInvertible(A, r);
 }
 
 template <class T, int algo>
@@ -1227,7 +1245,7 @@ bool core::apparatus<T, algo>::getBQInverse(const tMatrixDiscretes& A, tMatrixDi
 	tMatrixDiscretes permMatrix;
 	int r = this->impl_getRank(A, permMatrix);
 	if (!this->isBQInvertible(A, r))
-		throw algoException("(Q)-Inversion: The matrix is not (B, Q)-invertible");
+		throw algoException("(B, Q)-Inversion: The matrix is not (B, Q)-invertible");
 	tMatrixDiscretes sdiscs;
 	sdiscs.reserve(A.size());
 	std::for_each(A.begin(), A.end(), 
@@ -1259,24 +1277,24 @@ bool core::apparatus<T, algo>::getBQInverse(const tMatrixDiscretes& A, int r, co
 
 	tMatrixDiscretes Q;
 	this->chooseQ(S, r, Q);
-	std::cout << "Chose Q as:\n";
-	std::copy(Q.begin(), Q.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
+	//std::cout << "Chose Q as:\n";
+	//std::copy(Q.begin(), Q.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
 	tMatrixDiscretes qinv;
 	this->getQInverse(S, r, Q, qinv);
-	std::cout << "Q-Inverse is:\n";
-	std::copy(qinv.begin(), qinv.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
+	//std::cout << "Q-Inverse is:\n";
+	//std::copy(qinv.begin(), qinv.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
 	tMatrixDiscretes R;
 	this->multDiscretes(qinv, A, R);
-	std::cout << "R is:\n";
-	std::copy(R.begin(), R.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
+	//std::cout << "R is:\n";
+	//std::copy(R.begin(), R.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
 	tMatrixDiscretes B;
 	this->chooseB(R, r, B);
-	std::cout << "Chose B as:\n";
-	std::copy(B.begin(), B.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
+	//std::cout << "Chose B as:\n";
+	//std::copy(B.begin(), B.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
 	tMatrixDiscretes rinv;
 	this->getBInverse(R, r, B, rinv);
-	std::cout << "B-Inverse is:\n";
-	std::copy(rinv.begin(), rinv.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
+	//std::cout << "B-Inverse is:\n";
+	//std::copy(rinv.begin(), rinv.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
 	return this->multDiscretes(rinv, qinv, binv);
 }
 
@@ -1427,24 +1445,24 @@ bool core::apparatus<T, algo>::getBInverse(const tMatrixDiscretes& A, int r, con
 	if (!this->isBInvertible(A, B, r))
 		throw algoException("(B)-Inversion: The matrix is not (B)-invertible");
 	
-	std::cout << "A:\n";
-	std::copy(A.begin(), A.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
-	std::cout << "B:\n";
-	std::copy(B.begin(), B.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
+	//std::cout << "A:\n";
+	//std::copy(A.begin(), A.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
+	//std::cout << "B:\n";
+	//std::copy(B.begin(), B.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
 	//
 	// Calculate the product of A*B
 	//
 	tMatrixDiscretes AB;
 	this->multDiscretes(A, B, AB);
-	std::cout << "AB:\n";
-	std::copy(AB.begin(), AB.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
+	//std::cout << "AB:\n";
+	//std::copy(AB.begin(), AB.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
 	//
 	// Calculate the inverse to it
 	//
 	tMatrixDiscretes AB1;
 	this->getInverse(AB, r, AB1);
-	std::cout << "AB1:\n";
-	std::copy(AB1.begin(), AB1.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
+	//std::cout << "AB1:\n";
+	//std::copy(AB1.begin(), AB1.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
 	////
 	// Calculate the (B)-inverse
 	//
@@ -1720,18 +1738,18 @@ bool core::apparatus<T, algo>::impl_getInverse(const tMatrixDiscretes& A, int r,
 	this->getLU(A, r, L, U);
 	this->checkVal(L, 0);
 	this->checkVal(U, 0);
-	std::cout << "L:\n";
-	std::copy(L.begin(), L.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
-	std::cout << "U:\n";
-	std::copy(U.begin(), U.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
+	//std::cout << "L:\n";
+	//std::copy(L.begin(), L.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
+	//std::cout << "U:\n";
+	//std::copy(U.begin(), U.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
 	tMatrixDiscretes L1;
 	this->getInverseLowerTriangular(L, r, L1);
 	tMatrixDiscretes U1;
 	this->getInverseUpperTriangular(U, r, U1);
-	std::cout << "L1:\n";
-	std::copy(L1.begin(), L1.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
-	std::cout << "U1:\n";
-	std::copy(U1.begin(), U1.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
+	//std::cout << "L1:\n";
+	//std::copy(L1.begin(), L1.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
+	//std::cout << "U1:\n";
+	//std::copy(U1.begin(), U1.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
 	return this->multDiscretes(U1, L1, inv);
 }
 
@@ -2140,6 +2158,7 @@ bool core::apparatus<T, algo>::restorePade(const tMatrixDiscretes& theDiscretes,
 	{
 		for (int j = 1; j <= theDiscretes[0].getNumCols(); ++j)
 		{
+			std::cout << "i = " << i << ", j = " << j << std::endl;
 			tMatrixDiscretes d(m_di.K+1, tMatrixDiscrete(n, n, 0));
 			int dk = m;
 			for (int di = 1; di <= n; ++di)
@@ -2151,10 +2170,40 @@ bool core::apparatus<T, algo>::restorePade(const tMatrixDiscretes& theDiscretes,
 				}
 			}
 			std::cout << "Got the left for b-calculation\n";
-			std::cout << "D:\n";
-			std::copy(d.begin(), d.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
+			std::cout << "D: " << d[0] << std::endl;
+			// TODO
+			//continue;
 			tMatrixDiscretes inv;
-			this->getInverse(d, n, inv);
+			//this->getBQInverse(d, inv);
+			tMatrixDiscrete C(d[0].getNumRows(), d[0].getNumCols());
+			tMatrixDiscrete F(d[0].getNumRows(), d[0].getNumCols());
+			(void) C;
+			(void) F;
+			int r = 0;
+			this->getRankDecomposition(d[0], r, C, F);
+			std::cout<< "r = " << r << std::endl;
+			if (r == n)
+				this->getInverse(d, r, inv);
+			else 
+				this->getBQInverse(d, inv);
+			//std::cout << "R = " << r << std::endl;
+			//if (this->isBInvertible(d, r))
+			//{
+			//	std::cout << "Getting B-inverse!\n";
+			//	this->getBInverse(d, r, inv);
+			//}
+			//else if (this->isQInvertible(d, r))
+			//{
+			//	std::cout << "Getting Q-inverse!\n";
+			//	this->getQInverse(d, r, inv);
+			//}
+			//else
+			//{
+			//	std::cout << "Getting B,Q-inverse!\n";
+			//	this->getBQInverse(d, inv);
+			//}
+			//this->getInverse(d, n, inv);
+			//this->getBQInverse(d, inv);
 			//this->getBQInverse(d, inv);
 			//int r = this->getRank(d);
 			//std::cout << "rank = " << r << std::endl;
@@ -2180,9 +2229,8 @@ bool core::apparatus<T, algo>::restorePade(const tMatrixDiscretes& theDiscretes,
 			tMatrixDiscrete right(n, 1, 0);
 			for (int ri = 1; ri <= n; ++ri)
 				right[ri][1] = -theDiscretes[m+ri][i][j];
-			std::cout << "Got the right\n";
+			std::cout << "Got the right:\n" << right << std::endl;
 			tMatrixDiscrete b = inv[0]*right;
-			std::cout << "B = " << b << std::endl;
 
 			tMatrixDiscrete left(m+1, m+1, 0);
 			for (int li = 1; li <= m+1; ++li)
@@ -2199,10 +2247,104 @@ bool core::apparatus<T, algo>::restorePade(const tMatrixDiscretes& theDiscretes,
 			{
 				aright[ai][1] = theDiscretes[ai-1][i][j];
 			}
+			std::cout << "aright:\n" << aright << std::endl;
 			tMatrixDiscrete a = left*aright;
-			std::cout << "A = " << a << std::endl;
+			std::cout << "A:\n" << a << std::endl;
+			std::cout << "B:\n" << b << std::endl;
+			tFunctionPtr p(new subtract<T>(
+								tFunctionPtr(new parameter<T>()),
+								tFunctionPtr(new const_function<T>(m_di.tv))));
+			tFunctionPtr ba = p;
+			if (m_di.H != 1 && m_di.H != 0)
+				ba = tFunctionPtr(new divide<T>(p, tFunctionPtr(new const_function<T>(m_di.H))));
+					
+			tFunctionPtr up(new const_function<T>(a[1][1]));
+			for (int i = 2; i <= m+1; ++i)
+			{
+				tFunctionPtr mul(new multiply<T, eMultNum>(a[i][1], 
+									tFunctionPtr(new power<T>(ba, i-1))));
+				up = tFunctionPtr(new add<T>(up, mul));
+			}
+			tFunctionPtr down(new const_function<T>(1));
+
+			for (int i = 1; i <= n; ++i)
+			{
+				tFunctionPtr mul(new multiply<T, eMultNum>(b[i][1], 
+									tFunctionPtr(new power<T>(ba, i))));
+				down = tFunctionPtr(new add<T>(down, mul));
+			}
+			out[i][j] = tFunctionPtr(new divide<T>(up, down));
 		}
 	}
+	return true;
+}
+
+template <class T, int algo>
+bool core::apparatus<T, algo>::getRankDecomposition(const tMatrixDiscrete& A, int& r, tMatrixDiscrete& C, tMatrixDiscrete& F)
+{
+	r = 0;
+	const int m = A.getNumRows();
+	const int n = A.getNumCols();
+
+	int limit = std::min(m, n);
+	tMatrixDiscrete B = A;
+	for (int i = 1; i <= limit; ++i)
+	{
+		//int k = i;
+		//for (int p = i+1; p <= limit; ++p)
+		//{
+		//	if (B[p][i] > B[k][i])
+		//		k = p;
+		//}
+		//B.swap(i, k);
+		//std::cout << "After swap: " << B << std::endl;
+		//if (!this->is_equal(B[i][i], 0))
+		//{
+		//	for (int j = i+1; j <= n; ++j)
+		//		B[i][j] = B[i][j] / B[i][i];
+		//	B[i][i] = 1;
+		//	++r;
+		//}
+		//else
+		//	B[i][i] = 0;
+		if (this->is_equal(B[i][i], 0))
+		{
+			B[i][i] = 0;
+			continue;
+		}
+
+		//for (int p = 1; p <= limit; ++p)
+		//{
+		//	if (i == p)
+		//		continue;
+		for (int p = i+1; p <= limit; ++p)
+		{
+			if (this->is_equal(B[p][i], 0))
+			{
+				B[p][i] = 0;
+				continue;
+			}
+			for (int j = i+1; j <= n; ++j)
+			{
+				B[p][j] -= (B[p][i]*B[i][j])/B[i][i];
+			}
+			B[p][i] = 0;
+		}
+		//std::cout << "B: " <<  B << std::endl;
+	}
+	std::cout << "B:" << B << std::endl;
+	for (int i = 1; i <= limit; ++i)
+	{
+		for (int j = 1; j <= n; ++j)
+		{
+			if (!this->is_equal(B[i][j], 0))
+			{
+				++r;
+				break;
+			}
+		}
+	}
+
 	return true;
 }
 

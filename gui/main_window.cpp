@@ -38,7 +38,7 @@ MainWindow::MainWindow(QWidget* p)
 	this->move(x, y);
 
 	m_rank = 0;
-	m_epsilon = 0.000001;
+	m_epsilon = 0.00000000000000001;
 	if (m_epsilon != 0)
 	{
 		m_app.setComparator(std::shared_ptr<core::comparator<double> >(new core::comparator<double>(m_epsilon)));
@@ -572,6 +572,13 @@ void MainWindow::restore(const tDiscretes& discretes, eRestType rt, const QStrin
 
 void MainWindow::restorePade(const tDiscretes& discretes, const QString& title, tMatrix& origMatrix)
 {
+	assert(m_di.K >= 0);
+	origMatrix.resize(discretes[0].getNumCols(), discretes[0].getNumRows(), tFunctionPtr(nullptr));
+	m_app.restorePade(discretes, m_pade_m, m_pade_n, origMatrix, m_di.K > 0 ? m_di.K-1 : 0);
+	QTableWidget* table = new QTableWidget();
+	int index = m_central_widget->addTab(table, title);
+	m_central_widget->setCurrentIndex(index);
+	updateTableWithFuncMatrix(table, origMatrix);
 }
 
 void MainWindow::restoreTaylorSingle(const tDiscretes& discretes, const QString& title, tMatrix& origMatrix)
