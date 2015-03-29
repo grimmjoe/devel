@@ -731,7 +731,7 @@ int core::apparatus<T, algo>::impl_getRank(const tMatrixDiscrete& A, tMatrixDisc
 			theIndices[--nn] = i;
 	}
 	std::cout << "The rank is " << r << std::endl;
-	assert (r <= std::min(m, n));
+	//assert (r <= std::min(m, n));
 	//permMatrix.resize(n, n, 0);
 	permMatrix.resize(1, tMatrixDiscrete(n, r, 0));
 	for (int i = 1; i <= r; ++i)
@@ -752,7 +752,8 @@ int core::apparatus<T, algo>::impl_getRank(const tMatrixDiscrete& A, tMatrixDisc
 	//std::cout << "The permutation matrix is:\n";
 	//std::cout << permMatrix[0] << std::endl;
 
-	return r;
+	//return r;
+	return std::min(r, std::min(m, n));
 }
 
 template <class T, int algo>
@@ -1300,6 +1301,8 @@ bool core::apparatus<T, algo>::getBQInverse(const tMatrixDiscretes& A, int r, co
 	if (!this->isBQInvertible(A, r))
 		throw algoException("(Q)-Inversion: The matrix is not (B, Q)-invertible");
 
+	std::cout << "A:\n" << std::endl;
+	std::copy(A.begin(), A.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
 	tMatrixDiscretes Q;
 	this->chooseQ(S, r, Q);
 	//std::cout << "Chose Q as:\n";
@@ -1479,15 +1482,15 @@ bool core::apparatus<T, algo>::getBInverse(const tMatrixDiscretes& A, int r, con
 	//
 	tMatrixDiscretes AB;
 	this->multDiscretes(A, B, AB);
-	//std::cout << "AB:\n";
-	//std::copy(AB.begin(), AB.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
+	std::cout << "AB:\n";
+	std::copy(AB.begin(), AB.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
 	//
 	// Calculate the inverse to it
 	//
 	tMatrixDiscretes AB1;
 	this->getInverse(AB, r, AB1);
-	//std::cout << "AB1:\n";
-	//std::copy(AB1.begin(), AB1.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
+	std::cout << "AB1:\n";
+	std::copy(AB1.begin(), AB1.end(), std::ostream_iterator<tMatrixDiscrete>(std::cout, "\n"));
 	////
 	// Calculate the (B)-inverse
 	//

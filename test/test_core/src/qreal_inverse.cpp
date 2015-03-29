@@ -76,7 +76,7 @@ int main(int argc, char* argv[])
 	std::cout << "\nRestoring the original\n";
 	tMatrix origMatrix(n, m, tFunctionPtr(nullptr));
 	if (pade_taylor == 'p')
-		app.restorePade(theDiscretes, 4, 5, origMatrix, k-1);
+		app.restorePade(theDiscretes, 1, 2, origMatrix, k-1);
 	else
 		app.restoreTaylorSingle(theDiscretes, origMatrix, k-1);
 	std::cout << "The original:\n";
