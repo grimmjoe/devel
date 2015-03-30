@@ -60,7 +60,6 @@ EXE13:=bin/qmulti_inverse
 
 ##debug: CXXFLAGS += -DDEBUG -g
 ##debug: default
-
 ##debug: CXXFLAGS+=-DDEBUG -g
 ##debug: CXXFLAGS:=$(filter-out -O2,$(CXXFLAGS))
 ##debug: $(EXE10)

@@ -10,6 +10,8 @@
 #include <vector>
 #include <iterator>
 
+#include <chrono>
+
 typedef core::apparatus<double> tApp;
 typedef typename tApp::tMatrixDiscrete tDiscrete;
 typedef typename tApp::tMatrixDiscretes tDiscretes;
@@ -70,7 +72,11 @@ int main(int argc, char* argv[])
 	tDiscretes theMatrixDiscretes;
 	app.applyDiffTrans(theMatrix, theMatrixDiscretes);
 	//app.getQInverse(theMatrixDiscretes, theDiscretes);
+	std::chrono::high_resolution_clock::time_point begin = std::chrono::high_resolution_clock::now();
 	app.getQInverse(theMatrix, theDiscretes);
+	std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
+	auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end-begin).count();
+	std::cout << "Duration = " << duration << std::endl;
 	std::cout << "\nDiscretes:\n";
 	std::copy(theDiscretes.begin(), theDiscretes.end(), std::ostream_iterator<tDiscrete>(std::cout, "\n"));
 	std::cout << "\nRestoring the original\n";
