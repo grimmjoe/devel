@@ -322,6 +322,11 @@ namespace core
 		//
 		/// Get the (B)-inverse
 		//
+		bool getBInverse(const tMatrixDiscretes& A, tMatrixDiscretes& binv);
+
+		//
+		/// Get the (B)-inverse
+		//
 		bool getBInverse(const tMatrixDiscretes& A, int r, tMatrixDiscretes& binv);
 
 		//
@@ -373,6 +378,11 @@ namespace core
 		/// Get the (Q)-inverse
 		//
 		bool getQInverse(const tFuncMatrix& A, int r, tMatrixDiscretes& binv);
+
+		//
+		/// Get the (Q)-inverse
+		//
+		bool getQInverse(const tMatrixDiscretes& A, tMatrixDiscretes& binv);
 
 		//
 		/// Get the (Q)-inverse
@@ -1444,6 +1454,12 @@ bool core::apparatus<T, algo>::getBInverse(const tFuncMatrix& A, int r, tMatrixD
 }
 
 template <class T, int algo>
+bool core::apparatus<T, algo>::getBInverse(const tMatrixDiscretes& A, tMatrixDiscretes& binv)
+{
+	return this->getBInverse(A, this->getRank(A), binv);
+}
+
+template <class T, int algo>
 bool core::apparatus<T, algo>::getBInverse(const tMatrixDiscretes& A, int r, tMatrixDiscretes& binv)
 {
 	tMatrixDiscretes B;
@@ -1582,6 +1598,12 @@ bool core::apparatus<T, algo>::getQInverse(const tFuncMatrix& A, int r, tMatrixD
 	tMatrixDiscretes discretes;
 	this->applyDiffTrans(A, discretes);
 	return this->getQInverse(discretes, r, binv);
+}
+
+template <class T, int algo>
+bool core::apparatus<T, algo>::getQInverse(const tMatrixDiscretes& A, tMatrixDiscretes& binv)
+{
+	return this->getQInverse(A, this->getRank(A), binv);
 }
 
 template <class T, int algo>
@@ -1979,7 +2001,7 @@ bool core::apparatus<T, algo>::applyDiffTrans(const tFuncMatrix& theMatrix, tMat
 	}
 	std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
 	auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end-begin).count();
-	std::cout << "ApplyDiffTrans Duration = " << duration << std::endl;
+	std::cout << "ApplyDiffTrans duration = " << duration << std::endl;
 
 
 	return true;

@@ -60,8 +60,8 @@ int main(int argc, char* argv[])
 			theMatrix[i][j] = p.parse(s);
 		}
 	}
-	std::cout << "The matrix:\n";
-	printFuncMatrix(theMatrix);
+	//std::cout << "The matrix:\n";
+	//printFuncMatrix(theMatrix);
 	tDiffInfo di(tv, 1, k);
 	tApp app(di);
 	if (epsilon != 0)
@@ -73,25 +73,26 @@ int main(int argc, char* argv[])
 	app.applyDiffTrans(theMatrix, theMatrixDiscretes);
 	//app.getQInverse(theMatrixDiscretes, theDiscretes);
 	std::chrono::high_resolution_clock::time_point begin = std::chrono::high_resolution_clock::now();
-	app.getQInverse(theMatrix, theDiscretes);
+	app.getQInverse(theMatrixDiscretes, theDiscretes);
+	//app.getQInverse(theMatrix, theDiscretes);
 	std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
 	auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end-begin).count();
 	std::cout << "Duration = " << duration << std::endl;
-	std::cout << "\nDiscretes:\n";
-	std::copy(theDiscretes.begin(), theDiscretes.end(), std::ostream_iterator<tDiscrete>(std::cout, "\n"));
-	std::cout << "\nRestoring the original\n";
-	tMatrix origMatrix(n, m, tFunctionPtr(nullptr));
-	if (pade_taylor == 'p')
-		app.restorePade(theDiscretes, 1, 2, origMatrix, k-1);
-	else
-		app.restoreTaylorSingle(theDiscretes, origMatrix, k-1);
-	std::cout << "The original:\n";
-	printFuncMatrix(origMatrix);
+	//std::cout << "\nDiscretes:\n";
+	//std::copy(theDiscretes.begin(), theDiscretes.end(), std::ostream_iterator<tDiscrete>(std::cout, "\n"));
+	//std::cout << "\nRestoring the original\n";
+	//tMatrix origMatrix(n, m, tFunctionPtr(nullptr));
+	//if (pade_taylor == 'p')
+	//	app.restorePade(theDiscretes, 1, 2, origMatrix, k-1);
+	//else
+	//	app.restoreTaylorSingle(theDiscretes, origMatrix, k-1);
+	//std::cout << "The original:\n";
+	//printFuncMatrix(origMatrix);
 
-	if (app.checkB_Q_BQ_Inverse(theMatrixDiscretes, theDiscretes, di.K>0? di.K-1:0))
-		std::cout << "The calculation is correct" << std::endl;
-	else
-		std::cout << "The calculation is NOT CORRECT" << std::endl;
+	//if (app.checkB_Q_BQ_Inverse(theMatrixDiscretes, theDiscretes, di.K>0? di.K-1:0))
+	//	std::cout << "The calculation is correct" << std::endl;
+	//else
+	//	std::cout << "The calculation is NOT CORRECT" << std::endl;
 
 	return 0;
 }
