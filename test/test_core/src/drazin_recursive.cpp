@@ -46,8 +46,19 @@ int main(int argc, char* argv[])
 	int k;
 	double tv;
 	fin >> k >> tv;
+	int degree;
+	fin >> degree;
 	double epsilon;
 	fin >> epsilon;
+	tDiffInfo di(tv, 1, k);
+	tApp app(di);
+	if (epsilon != 0)
+	{
+		app.setComparator(std::shared_ptr<core::comparator<double> >(new core::comparator<double>(epsilon)));
+	}
+	tDiscretes theDiscretes;
+	tDiscretes theMatrixDiscretes;
+	{
 	tMatrix theMatrix(m, n, tFunctionPtr(nullptr));
 	core::parser<double> p;
 	for (int i = 1; i <= m; ++i)
@@ -61,15 +72,8 @@ int main(int argc, char* argv[])
 	}
 	//std::cout << "The matrix:\n";
 	//printFuncMatrix(theMatrix);
-	tDiffInfo di(tv, 1, k);
-	tApp app(di);
-	if (epsilon != 0)
-	{
-		app.setComparator(std::shared_ptr<core::comparator<double> >(new core::comparator<double>(epsilon)));
+	app.applyDiffTrans(theMatrix, theMatrixDiscretes, degree);
 	}
-	tDiscretes theDiscretes;
-	tDiscretes theMatrixDiscretes;
-	app.applyDiffTrans(theMatrix, theMatrixDiscretes);
 	//std::cout << "The matrix discretes:\n";
 	//std::copy(theMatrixDiscretes.begin(), theMatrixDiscretes.end(), std::ostream_iterator<tDiscrete>(std::cout, "\n"));
 	std::chrono::high_resolution_clock::time_point begin = std::chrono::high_resolution_clock::now();

@@ -46,6 +46,8 @@ int main(int argc, char* argv[])
 	int k;
 	double tv;
 	fin >> k >> tv;
+	int degree;
+	fin >> degree;
 	double epsilon;
 	fin >> epsilon;
 	tMatrix theMatrix(m, n, tFunctionPtr(nullptr));
@@ -69,7 +71,7 @@ int main(int argc, char* argv[])
 	}
 	tDiscretes theDiscretes;
 	tDiscretes theMatrixDiscretes;
-	app.applyDiffTrans(theMatrix, theMatrixDiscretes);
+	app.applyDiffTrans(theMatrix, theMatrixDiscretes, degree);
 	//std::cout << "The matrix discretes:\n";
 	//std::copy(theMatrixDiscretes.begin(), theMatrixDiscretes.end(), std::ostream_iterator<tDiscrete>(std::cout, "\n"));
 	std::chrono::high_resolution_clock::time_point begin = std::chrono::high_resolution_clock::now();

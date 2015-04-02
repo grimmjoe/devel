@@ -77,7 +77,7 @@ void makeTestMatrices(testData& data)
 		ss << std::setfill('0') << std::setw(3) << n;
 		std::ofstream out(ss.str());
 		assert(out.good());
-		out << data.m << " " << data.n << " " << data.k << " " << data.tv << " " << data.epsilon << std::endl;
+		out << data.m << " " << data.n << " " << data.k << " " << data.tv << " " << data.deg+1 << " "<< data.epsilon << std::endl;
 		int nz = 0;
 		std::vector<std::vector<std::string> > theMatrix (data.m, std::vector<std::string>(data.n, " "));
 		int r = data.r;

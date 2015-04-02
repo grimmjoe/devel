@@ -137,6 +137,8 @@ namespace core
 		//
 		bool applyDiffTrans(const tFuncMatrix& A, tMatrixDiscretes& discs) const;
 
+		bool applyDiffTrans(const tFuncMatrix& theMatrix, tMatrixDiscretes& discs, int K) const;
+
 		//
 		/// Add 2 discretes
 		//
@@ -1980,25 +1982,47 @@ bool core::apparatus<T, algo>::getLU(const tFuncMatrix& A, tMatrixDiscretes& L, 
 template <class T, int algo>
 bool core::apparatus<T, algo>::applyDiffTrans(const tFuncMatrix& theMatrix, tMatrixDiscretes& discs) const
 {
+	return this->applyDiffTrans(theMatrix, discs, m_di.K);
+}
+
+template <class T, int algo>
+bool core::apparatus<T, algo>::applyDiffTrans(const tFuncMatrix& theMatrix, tMatrixDiscretes& discs, int K) const
+{
 	std::chrono::high_resolution_clock::time_point begin = std::chrono::high_resolution_clock::now();
 
 	const int m = theMatrix.getNumRows(); 
 	const int n = theMatrix.getNumCols();
 	discs.resize(m_di.K+1, tMatrixDiscrete(m, n, 0));
 	tFuncMatrix A = theMatrix;
-	long long kfac = 1;
-	for (int k = 0; k <= m_di.K; ++k)
-	{
-		kfac *= (k > 0 ? k : 1);
 		for (int i = 1; i <= m; ++i)
 		{
 			for (int j = 1; j <= n; ++j)
 			{
-				A[i][j] = A[i][j]->derivative(k > 0 ? 1 : 0);
-				discs[k][i][j] = std::pow(m_di.H, k)*(*A[i][j])(m_di.tv)/(T)kfac;
+				long long kfac = 1;
+				for (int k = 0; k <= K; ++k)
+				{
+					kfac *= (k > 0 ? k : 1);
+					//std::cout << "k = " << k << std::endl;
+					A[i][j] = A[i][j]->derivative(k > 0 ? 1 : 0);
+					discs[k][i][j] = std::pow(m_di.H, k)*(*A[i][j])(m_di.tv)/(T)kfac;
+				}
+				A[i][j].reset();
 			}
 		}
-	}
+	//long long kfac = 1;
+	//for (int k = 0; k <= m_di.K; ++k)
+	//{
+	//	kfac *= (k > 0 ? k : 1);
+	//	std::cout << "k = " << k << std::endl;
+	//	for (int i = 1; i <= m; ++i)
+	//	{
+	//		for (int j = 1; j <= n; ++j)
+	//		{
+	//			A[i][j] = A[i][j]->derivative(k > 0 ? 1 : 0);
+	//			discs[k][i][j] = std::pow(m_di.H, k)*(*A[i][j])(m_di.tv)/(T)kfac;
+	//		}
+	//	}
+	//}
 	std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
 	auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end-begin).count();
 	std::cout << "ApplyDiffTrans duration = " << duration << std::endl;
