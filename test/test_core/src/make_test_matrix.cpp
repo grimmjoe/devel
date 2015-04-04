@@ -74,7 +74,7 @@ void makeTestMatrices(testData& data)
 	{
 		std::stringstream ss;
 		ss << data.path << "/" << data.prefix;
-		ss << std::setfill('0') << std::setw(3) << n;
+		ss << "_" << data.m << "x" << data.n << "_" << std::setfill('0') << std::setw(3) << n;
 		std::ofstream out(ss.str());
 		assert(out.good());
 		out << data.m << " " << data.n << " " << data.k << " " << data.tv << " " << data.deg+1 << " "<< data.epsilon << std::endl;
@@ -121,17 +121,23 @@ void makeTestMatrices(testData& data)
 			}
 		}
 
+		std::cout << "r = " << r << std::endl;
+		std::cout << "data.n = " << data.n << std::endl;
+
 		for (int j = r+1; j <= data.n; ++j)
 		{
+			std::cout << "j = " << j << std::endl;
 			for (int i = 1; i <= r; ++i)
 			{
 				theMatrix[i-1][j-1] = theMatrix[i-1][r-1];
 			}
 		}
-		for (int i = r+1; i <= m; ++i)
+		for (int i = r+1; i <= data.m; ++i)
 		{
 			for (int j = 1; j <= data.n; ++j)
+			{
 				theMatrix[i-1][j-1] = theMatrix[r-1][j-1];
+			}
 		}
 		for (int i = 1; i <= m; ++i)
 		{
@@ -139,7 +145,7 @@ void makeTestMatrices(testData& data)
 			{
 				out << theMatrix[i-1][j-1] << " ";
 			}
-			out << theMatrix[i-1][n-1] << std::endl;
+			out << theMatrix[i-1][data.n-1] << std::endl;
 		}
 	}
 }

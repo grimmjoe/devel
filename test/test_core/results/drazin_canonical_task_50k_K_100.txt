@@ -1,0 +1,5 @@
+10x10run_algo: ../../core/inc/apparatus.h:1271: bool core::apparatus<T, algo>::getDrazinInverseCanonical(const tMatrixDiscretes&, core::apparatus<T, algo>::tMatrixDiscretes&) [with T = double; int algo = 2; core::apparatus<T, algo>::tMatrixDiscretes = std::vector<core::matrix<double>, std::allocator<core::matrix<double> > >]: Assertion `this->is_equal(TM[0][1][cn], TM[0][cn][1])' failed.
+15x15 678897
+20x20 1470186
+25x25 3466900
+5x5run_algo: ../../core/inc/apparatus.h:1271: bool core::apparatus<T, algo>::getDrazinInverseCanonical(const tMatrixDiscretes&, core::apparatus<T, algo>::tMatrixDiscretes&) [with T = double; int algo = 2; core::apparatus<T, algo>::tMatrixDiscretes = std::vector<core::matrix<double>, std::allocator<core::matrix<double> > >]: Assertion `this->is_equal(TM[0][1][cn], TM[0][cn][1])' failed.

@@ -19,9 +19,30 @@
 
 #include <chrono>
 
+#include "tbb/parallel_for_each.h"
+#include "tbb/parallel_for.h"
+#include "tbb/blocked_range.h"
+#include "tbb/task.h"
+#include "tbb/mutex.h"
+
 //#include <iostream>
 //#include <algorithm>
 //#include <iterator>
+tbb::mutex theMutex;
+
+template <class T>
+void print(const T& t)
+{
+	tbb::mutex::scoped_lock lock(theMutex);
+	std::cout << t << std::endl;
+}
+
+template <class T>
+void print(const T& a, const T& b)
+{
+	tbb::mutex::scoped_lock lock(theMutex);
+	std::cout << a << " " << b << std::endl;
+}
 
 #define EPSILON_FOR_ZERO 0.00000001
 
@@ -30,7 +51,8 @@ namespace core
 	enum eAlgoType
 	{
 		eAlgoBasic = 0,
-		eAlgoParallel = 1
+		eAlgoParallelMultParallelFor = 1,
+		eAlgoParallelMultTask = 2
 	};
 
 
@@ -661,6 +683,120 @@ namespace core
 		tDiffInfo m_di;
 		std::shared_ptr<comparator<T> > m_comparator;
 	};
+
+
+	//template <>
+	//bool core::apparatus<double, core::eAlgoParallel>::applyDiffTrans(const tFuncMatrix& theMatrix, tMatrixDiscretes& discs, int K) const
+	//{
+	//	std::cout << "HHHHHHHHHHHHHHHHHHHHHHHHHHHHHH\n";
+	//	return true;
+	//}
+
+	template <>
+	bool apparatus<double, eAlgoParallelMultParallelFor>::multDiscretes(const tMatrixDiscretes& x, const tMatrixDiscretes& y, tMatrixDiscretes& out)
+	{
+		assert (m_di.K+1 == x.size());
+		assert (m_di.K+1 == y.size());
+		assert (m_di.K >= 0);
+		const int xm = x[0].getNumRows();
+		const int xn = x[0].getNumCols();
+		const int ym = y[0].getNumRows();
+		const int yn = y[0].getNumCols();
+		if (xn != ym)
+			throw matrixException("Matrix multiplication not possible, boundary error");
+		out.resize(m_di.K+1, tMatrixDiscrete(xm, yn, 0));
+		tbb::parallel_for(
+			//tbb::blocked_range<int>(0, m_di.K+1, (m_di.K+1)*(m_di.K+2)/(2*10*m_di.K)),
+			tbb::blocked_range<int>(0, m_di.K+1, (m_di.K+1)/16),
+			[&](tbb::blocked_range<int> r)
+			{
+				for (int k = r.begin(); k != r.end(); ++k)
+				{
+					//print(r.begin(), r.end());
+					for (int l = 0; l <= k; ++l)
+					{
+						out[k] += x[l]*y[k-l];
+					}
+				}
+			}
+		);
+		return true;
+	}
+
+	template <class FUNC>
+	class multTask : public tbb::task
+	{
+	int begin;
+	int end;
+	FUNC func;
+	public:
+		multTask(int b, int e, FUNC f)
+			: begin(b)
+			, end(e)
+			, func(f)
+		{
+		}
+
+		tbb::task* execute()
+		{
+			//print(begin, end);
+			for (int k = begin; k <= end; ++k)
+				func(k);
+			return NULL;
+		}
+	};
+
+	template <class FUNC>
+	tbb::task* makeMultTask(tbb::task* parent, int b, int e, FUNC f)
+	{
+		return new(parent->allocate_child()) multTask<FUNC>(b, e, f);
+	}
+
+	template <>
+	bool apparatus<double, eAlgoParallelMultTask>::multDiscretes(const tMatrixDiscretes& x, const tMatrixDiscretes& y, tMatrixDiscretes& out)
+	{
+		assert (m_di.K+1 == x.size());
+		assert (m_di.K+1 == y.size());
+		assert (m_di.K >= 0);
+		const int xm = x[0].getNumRows();
+		const int xn = x[0].getNumCols();
+		const int ym = y[0].getNumRows();
+		const int yn = y[0].getNumCols();
+		if (xn != ym)
+			throw matrixException("Matrix multiplication not possible, boundary error");
+		out.resize(m_di.K+1, tMatrixDiscrete(xm, yn, 0));
+		tbb::task* dummy = new(tbb::task::allocate_root()) tbb::empty_task;
+		dummy->increment_ref_count();
+		int k = 0;
+		//int mult = ((m_di.K+1)*(m_di.K+2))/(2*10*m_di.K);
+		int mult = 100000/(xm*xn*yn);
+		//int mult = ((m_di.K+1)*(m_di.K+2))/(2*m_di.K);
+		while (k <= m_di.K)
+		{
+			int z = k*k+3*k+2+2+2*mult;
+			int knext = (-3+sqrt(9-4*(2-z)))/2;
+			if (knext < k)
+				knext = k;
+			else if (knext > m_di.K)
+				knext = m_di.K;
+			tbb::task* ch = makeMultTask(dummy, k, knext, 
+				[&](int p)
+				{
+					//print(p);
+					for (int l = 0; l <= p; ++l)
+					{
+						out[p] += x[l]*y[p-l];
+					}
+				}
+			);
+			dummy->increment_ref_count();
+			dummy->spawn(*ch);
+			k = knext+1;
+		}
+		dummy->wait_for_all();
+		dummy->destroy(*dummy);
+		return true;
+	}
 } // namespace core
 
 template <class T, int algo>
@@ -2025,7 +2161,8 @@ bool core::apparatus<T, algo>::applyDiffTrans(const tFuncMatrix& theMatrix, tMat
 	//}
 	std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
 	auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end-begin).count();
-	std::cout << "ApplyDiffTrans duration = " << duration << std::endl;
+	//std::cout << "ApplyDiffTrans duration = " << duration << std::endl;
+	(void) duration;
 
 
 	return true;
@@ -2435,8 +2572,6 @@ bool core::apparatus<T, algo>::getRankDecomposition(const tMatrixDiscrete& A, in
 
 	return true;
 }
-
-
 
 
 #endif // __APPARATUS_H__

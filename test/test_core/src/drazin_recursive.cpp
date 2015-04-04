@@ -1,9 +1,9 @@
 
+#include "apparatus.h"
 #include "arithmetic.h"
 #include "function.h"
 #include "matrix.h"
 #include "parser.h"
-#include "apparatus.h"
 #include <iostream>
 #include <fstream>
 #include <cassert>
@@ -12,7 +12,7 @@
 
 #include <chrono>
 
-typedef core::apparatus<double> tApp;
+typedef core::apparatus<double, core::eAlgoBasic> tApp;
 typedef typename tApp::tMatrixDiscrete tDiscrete;
 typedef typename tApp::tMatrixDiscretes tDiscretes;
 typedef typename tApp::tFunction tFunction;
